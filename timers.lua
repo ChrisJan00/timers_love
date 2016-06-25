@@ -28,7 +28,7 @@ local Timer_proto = {
     end,
 
     thenWait = function(self, T)
-        local newTimer = Timers.create(T, self.name)
+        local newTimer = Timers.create(T)
         newTimer.origin = self.origin
         self:andThen(function()
             newTimer.elapsed = 0
@@ -62,9 +62,8 @@ local Timer_proto = {
         return self
     end,
 
-    withName = function(self, name)
-        self.origin.name = name
-        return self
+    ispaused = function(self)
+        return self.origin.paused
     end,
 
     withTimeout = function(self, t)
@@ -75,7 +74,7 @@ local Timer_proto = {
     -- clone as-is is dangerous: there's shallow copies of stuff embedded, when they were
     -- supposed to be all deep copies. I would have to recurse
     -- clone = function(self)
-    --     local newTimer = Timers.create(self.name, self.timeout)
+    --     local newTimer = Timers.create(self.timeout)
     --     newTimer.update = self.update
     --     newTimer.callback = self.callback
     --     newTimer.origin = self.origin
@@ -91,23 +90,12 @@ local Timer_mt = {
     __index = function(table, key) return Timer_proto[key] end
 }
 
--- possible inputs:
--- the "string" parameter will be taken as name, the "number" parameter will be taken as timeout
--- Timers.create(name, timeout)
--- Timers.create(timeout, name)
--- Timers.create(name)
--- Timers.create(timeout)
-
 Timers = {
     -- create a new timer object
-    create = function(param1, param2)
-        local name = (param1 and type(param1) == 'string' and param1) or (param2 and type(param2) == 'string' and param2)
-        local timeout = (param1 and type(param1) == 'number' and param1) or (param2 and type(param2) == 'number' and param2)
-
+    create = function(timeout)
         local newTimer = {
             elapsed = 0,
             limit = timeout,
-            name = name
         }
         setmetatable(newTimer,Timer_mt)
         newTimer.origin = newTimer
@@ -150,54 +138,6 @@ Timers = {
                     end
                     table.remove(l, i)
                 end
-            end
-        end
-    end,
-
-    -- get first running timer with matching name
-    -- if timer is not running it will now show
-    get = function(name)
-        local i
-        local l = Timers.list
-
-        for i=1,#l do
-            if l[i].origin.name == name then return l[i] end
-        end
-        return nil
-    end,
-
-    -- cancel all running timers with matching name
-    cancelNamed = function(name)
-        local i
-        local l = Timers.list
-
-        for i=#l,1,-1 do
-            if l[i].origin.name == name then
-                table.remove(l,i)
-            end
-        end
-    end,
-
-    -- pause all timers with matching name
-    pauseNamed = function(name)
-        local i
-        local l = Timers.list
-
-        for i=1,#l do
-            if l[i].origin.name == name then
-                l[i]:pause()
-            end
-        end
-    end,
-
-    -- continue all timers with matching name
-    continueNamed = function(name)
-        local i
-        local l = Timers.list
-
-        for i=1,#l do
-            if l[i].origin.name == name then
-                l[i]:continue()
             end
         end
     end,
