@@ -29,21 +29,23 @@ local Timer_proto = {
 
     thenWait = function(self, T)
         local newTimer = Timers.create(T, self.name)
-        newTimer.origin = self.origin or self
+        newTimer.origin = self.origin
         self:andThen(function()
+            newTimer.elapsed = 0
             table.insert(Timers.list, newTimer)
         end)
         return newTimer
     end,
 
     start = function(self)
-        table.insert(Timers.list, self.origin or self)
+        self.origin.elapsed = 0
+        table.insert(Timers.list, self.origin)
         return self
     end,
 
     cancel = function(self)
         for i=1,#Timers.list do
-            if Timers.list[i] == self then
+            if Timers.list[i].origin == self.origin then
                 table.remove(Timers.list, i)
                 return
             end
@@ -51,17 +53,17 @@ local Timer_proto = {
     end,
 
     pause = function(self)
-        self.paused = true
+        self.origin.paused = true
         return self
     end,
 
     continue = function(self)
-        self.paused = false
+        self.origin.paused = false
         return self
     end,
 
     withName = function(self, name)
-        self.name = name
+        self.origin.name = name
         return self
     end,
 
@@ -70,14 +72,19 @@ local Timer_proto = {
         return self
     end,
 
-    clone = function(self)
-        local newTimer = Timers.create(self.name, self.timeout)
-        newTimer.update = self.update
-        newTimer.callback = self.callback
-        newTimer.origin = self.origin
-        return newTimer
-    end,
+    -- clone as-is is dangerous: there's shallow copies of stuff embedded, when they were
+    -- supposed to be all deep copies. I would have to recurse
+    -- clone = function(self)
+    --     local newTimer = Timers.create(self.name, self.timeout)
+    --     newTimer.update = self.update
+    --     newTimer.callback = self.callback
+    --     newTimer.origin = self.origin
+    --     return newTimer
+    -- end,
 
+    ref = function(self)
+        return self.origin
+    end
 }
 
 local Timer_mt = {
@@ -103,6 +110,7 @@ Timers = {
             name = name
         }
         setmetatable(newTimer,Timer_mt)
+        newTimer.origin = newTimer
         return newTimer
     end,
 
@@ -130,7 +138,7 @@ Timers = {
         local l = Timers.list
         for i=#l,1,-1 do
             local t = l[i]
-            if not t.paused then
+            if not t.origin.paused then
                 t.elapsed = t.elapsed + dt
                 if t.update then
                     t.update(t.elapsed)
@@ -153,7 +161,7 @@ Timers = {
         local l = Timers.list
 
         for i=1,#l do
-            if l[i].name == name then return l[i] end
+            if l[i].origin.name == name then return l[i] end
         end
         return nil
     end,
@@ -164,7 +172,7 @@ Timers = {
         local l = Timers.list
 
         for i=#l,1,-1 do
-            if l[i].name == name then
+            if l[i].origin.name == name then
                 table.remove(l,i)
             end
         end
@@ -176,7 +184,7 @@ Timers = {
         local l = Timers.list
 
         for i=1,#l do
-            if l[i].name == name then
+            if l[i].origin.name == name then
                 l[i]:pause()
             end
         end
@@ -188,7 +196,7 @@ Timers = {
         local l = Timers.list
 
         for i=1,#l do
-            if l[i].name == name then
+            if l[i].origin.name == name then
                 l[i]:continue()
             end
         end
