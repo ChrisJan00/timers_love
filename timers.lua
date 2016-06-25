@@ -31,14 +31,15 @@ local Timer_proto = {
         local newTimer = Timers.create(T)
         newTimer.origin = self.origin
         self:andThen(function()
-            newTimer.elapsed = 0
+            newTimer.control = { elapsed = 0 }
             table.insert(Timers.list, newTimer)
         end)
         return newTimer
     end,
 
     start = function(self)
-        self.origin.elapsed = 0
+        self:cancel()
+        self.origin.control = { elapsed = 0 }
         table.insert(Timers.list, self.origin)
         return self
     end,
@@ -67,19 +68,20 @@ local Timer_proto = {
     end,
 
     withTimeout = function(self, t)
-        self.limit = t
+        self.timeout = t
         return self
     end,
 
-    -- clone as-is is dangerous: there's shallow copies of stuff embedded, when they were
-    -- supposed to be all deep copies. I would have to recurse
-    -- clone = function(self)
-    --     local newTimer = Timers.create(self.timeout)
-    --     newTimer.update = self.update
-    --     newTimer.callback = self.callback
-    --     newTimer.origin = self.origin
-    --     return newTimer
-    -- end,
+    -- you can't clone a timer and get access to the whole tail
+    -- because the tail is stored in the closures of the callbacks
+    -- but you can get a timer-chain that behaves like the original
+    -- but it's detached, so that it can run in parallel to it
+    cloneBase = function(self)
+        local newBase = Timers.create(self.origin.timeout)
+        newBase.update = self.origin.update
+        newBase.callback = self.origin.callback
+        return newBase
+    end,
 
     ref = function(self)
         return self.origin
@@ -94,8 +96,8 @@ Timers = {
     -- create a new timer object
     create = function(timeout)
         local newTimer = {
-            elapsed = 0,
-            limit = timeout,
+            control = { elapsed = 0 },
+            timeout = timeout,
         }
         setmetatable(newTimer,Timer_mt)
         newTimer.origin = newTimer
@@ -127,12 +129,12 @@ Timers = {
         for i=#l,1,-1 do
             local t = l[i]
             if not t.origin.paused then
-                t.elapsed = t.elapsed + dt
+                t.control.elapsed = t.control.elapsed + dt
                 if t.update then
-                    t.update(t.elapsed)
+                    t.update(t.control.elapsed)
                 end
 
-                if t.elapsed >= t.limit then
+                if t.control.elapsed >= t.timeout then
                     if t.callback then
                         t.callback()
                     end
