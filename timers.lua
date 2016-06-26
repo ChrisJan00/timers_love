@@ -1,11 +1,19 @@
+local function clone_self_orig(timer)
+    local copy = Timers.create(timer.timeout)
+    copy.update = timer.update
+    copy.callback = timer.callback
+    copy.origin.data = timer.origin.data
+    return copy
+end
+
 local Timer_proto = {
     -- function cb()
     andThen = function(self, cb)
         if self.callback then
             local func = self.callback
-            self.callback = function()
-                func()
-                cb()
+            self.callback = function(timer)
+                func(timer)
+                cb(timer)
             end
         else
             self.callback = cb
@@ -17,9 +25,9 @@ local Timer_proto = {
     withUpdate = function(self, upd)
         if self.update then
             local func = self.update
-            self.update = function(elapsed)
-                func(elapsed)
-                upd(elapsed)
+            self.update = function(elapsed, timer)
+                func(elapsed, timer)
+                upd(elapsed, timer)
             end
         else
             self.update = upd
@@ -30,16 +38,17 @@ local Timer_proto = {
     thenWait = function(self, T)
         local newTimer = Timers.create(T)
         newTimer.origin = self.origin
-        self:andThen(function()
-            newTimer.control = { elapsed = 0 }
-            table.insert(Timers.list, newTimer)
+        self:andThen(function(timer)
+            local launched = clone_self_orig(newTimer)
+            launched.origin = timer.origin
+            table.insert(Timers.list, launched)
         end)
         return newTimer
     end,
 
     start = function(self)
         self:cancel()
-        self.origin.control = { elapsed = 0 }
+        self.origin.elapsed = 0
         table.insert(Timers.list, self.origin)
         return self
     end,
@@ -72,15 +81,17 @@ local Timer_proto = {
         return self
     end,
 
-    -- you can't clone a timer and get access to the whole tail
-    -- because the tail is stored in the closures of the callbacks
-    -- but you can get a timer-chain that behaves like the original
-    -- but it's detached, so that it can run in parallel to it
-    cloneBase = function(self)
-        local newBase = Timers.create(self.origin.timeout)
-        newBase.update = self.origin.update
-        newBase.callback = self.origin.callback
-        return newBase
+    withData = function(self, data)
+        self.origin.data = data
+        return self
+    end,
+
+    getData = function(self)
+        return self.origin.data
+    end,
+
+    fork = function(self)
+        return clone_self_orig(self.origin)
     end,
 
     ref = function(self)
@@ -96,7 +107,7 @@ Timers = {
     -- create a new timer object
     create = function(timeout)
         local newTimer = {
-            control = { elapsed = 0 },
+            elapsed = 0 ,
             timeout = timeout,
         }
         setmetatable(newTimer,Timer_mt)
@@ -129,14 +140,14 @@ Timers = {
         for i=#l,1,-1 do
             local t = l[i]
             if not t.origin.paused then
-                t.control.elapsed = t.control.elapsed + dt
+                t.elapsed = t.elapsed + dt
                 if t.update then
-                    t.update(t.control.elapsed)
+                    t.update(t.elapsed, t)
                 end
 
-                if t.control.elapsed >= t.timeout then
+                if t.elapsed >= t.timeout then
                     if t.callback then
-                        t.callback()
+                        t.callback(t)
                     end
                     table.remove(l, i)
                 end
