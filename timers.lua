@@ -7,6 +7,19 @@ local function clone_self_orig(timer)
 end
 
 local Timer_proto = {
+    prepare = function(self, pre)
+        if self.init then
+            local func = self.init
+            self.init = function(timer)
+                func(timer)
+                pre(timer)
+            end
+        else
+            self.init = pre
+        end
+        return self
+    end,
+
     -- function cb()
     andThen = function(self, cb)
         if self.callback then
@@ -41,6 +54,7 @@ local Timer_proto = {
         self:andThen(function(timer)
             local launched = clone_self_orig(newTimer)
             launched.origin = timer.origin
+            if launched.init then launcher:init() end
             table.insert(Timers.list, launched)
         end)
         return newTimer
@@ -49,6 +63,7 @@ local Timer_proto = {
     start = function(self)
         self:cancel()
         self.origin.elapsed = 0
+        if self.origin.init then self.origin:init() end
         table.insert(Timers.list, self.origin)
         return self
     end,
@@ -72,7 +87,7 @@ local Timer_proto = {
         return self
     end,
 
-    ispaused = function(self)
+    isPaused = function(self)
         return self.origin.paused
     end,
 
@@ -108,7 +123,7 @@ Timers = {
     create = function(timeout)
         local newTimer = {
             elapsed = 0 ,
-            timeout = timeout,
+            timeout = timeout or 0,
         }
         setmetatable(newTimer,Timer_mt)
         newTimer.origin = newTimer
