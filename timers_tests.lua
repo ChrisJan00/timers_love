@@ -243,7 +243,73 @@ Tests = {
         Timers.update(1)
         check(container.count == 7) -- 5 + 2 (timer7) + 0 (timer8)
 
-    end
+    end,
+
+    function()
+        -- note: the draw methods are sorted, and default value is 0 for all.
+
+        -- when everything is 0, the sorting function leaves the list untouched,
+        -- so they will be drawn in the order of introduction
+
+        -- when everything has a different value, we are forcing our wished order
+
+        -- but when some of them have the same value for order, it is not
+        -- guaranteed how they will be sorted (if untouched or inverted)
+
+
+        local container = { text = "" }
+        -- test draw
+        local timer9 = Timers.create(1):withData(container):withDraw(function(timer)
+                timer:getData().text = timer:getData().text.."A"
+            end)
+        local timer10 = timer9:fork():withDraw(function(timer)
+                timer:getData().text = timer:getData().text.."B"
+            end)
+        local timer11 = timer9:fork():withDraw(function(timer)
+                timer:getData().text = timer:getData().text.."C"
+            end)
+        local timer12 = Timers.create(1) -- deliverately empty
+
+        -- draw in calling order (because all drawing order is the default, 0)
+        -- 11-9-10-12 -> CAB
+        timer11:start()
+        timer9:start()
+        timer10:start()
+        timer12:start()
+        check(container.text == "")
+        Timers.draw()
+        check(container.text == "CAB")
+
+        -- one of them has explicit order, the others have default order
+        timer11 = timer9:fork():withDraw(function(timer)
+                timer:getData().text = timer:getData().text.."D"
+            end,2)
+
+        Timers.cancelAll()
+        container.text = ""
+        timer11:start()
+        timer9:start()
+        timer10:start()
+        timer12:start()
+        check(container.text == "")
+        Timers.draw()
+        check(container.text:sub(3,3) == "D")
+        check(container.text:len() == 3)
+        -- cannot guarantee that first two characters are "AB" or "BA"
+
+
+        -- draw in explicit order
+        Timers.cancelAll()
+        container.text = ""
+        timer9:withDrawOrder(4):start()
+        timer10:withDrawOrder(3):start()
+        timer11:withDrawOrder(2):start()
+        timer12:withDrawOrder(1):start()
+        check(container.text == "")
+        Timers.draw()
+        check(container.text == "DBA")
+
+    end,
 }
 
 

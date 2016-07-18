@@ -1,3 +1,4 @@
+local _rebuild_draw_list
 local function clone_self_orig(timer)
     local copy = Timers.create(timer.timeout)
     copy.update = timer.update
@@ -48,6 +49,29 @@ local Timer_proto = {
         return self
     end,
 
+    -- function upd()
+    withDraw = function(self, draw, draworder)
+        if self.draw then
+            local func = self.draw
+            self.draw = function(timer)
+                func(elapsed)
+                draw(elapsed)
+            end
+        else
+            self.draw = draw
+        end
+
+        self:withDrawOrder(draworder or 0)
+
+        return self
+    end,
+
+    withDrawOrder = function(self, draworder)
+        self.origin.draworder = draworder
+        self.origin._dirty = true
+        return self
+    end,
+
     thenWait = function(self, T)
         local newTimer = Timers.create(T)
         newTimer.origin = self.origin
@@ -56,6 +80,7 @@ local Timer_proto = {
             launched.origin = timer.origin
             if launched.init then launcher:init() end
             table.insert(Timers.list, launched)
+            _rebuild_draw_list()
         end)
         return newTimer
     end,
@@ -65,6 +90,7 @@ local Timer_proto = {
         self.origin.elapsed = 0
         if self.origin.init then self.origin:init() end
         table.insert(Timers.list, self.origin)
+        _rebuild_draw_list()
         return self
     end,
 
@@ -72,6 +98,7 @@ local Timer_proto = {
         for i=1,#Timers.list do
             if Timers.list[i].origin == self.origin then
                 table.remove(Timers.list, i)
+                _rebuild_draw_list()
                 return
             end
         end
@@ -114,9 +141,18 @@ local Timer_proto = {
     end
 }
 
-local Timer_mt = {
-    __index = function(table, key) return Timer_proto[key] end
-}
+_rebuild_draw_list = function()
+    Timers.drawList = {}
+    for i=1,#Timers.list do
+        local t = Timers.list[i]
+        if t.draw then
+            table.insert(Timers.drawList, t)
+        end
+    end
+
+    table.sort(Timers.drawList,
+        function(a,b) return a.origin.draworder < b.origin.draworder end)
+end
 
 Timers = {
     -- create a new timer object
@@ -125,7 +161,7 @@ Timers = {
             elapsed = 0 ,
             timeout = timeout or 0,
         }
-        setmetatable(newTimer,Timer_mt)
+        setmetatable(newTimer, { __index = function(table, key) return Timer_proto[key] end })
         newTimer.origin = newTimer
         return newTimer
     end,
@@ -143,6 +179,7 @@ Timers = {
     -- general cancel all
     cancelAll = function()
         Timers.list = {}
+        _rebuild_draw_list()
     end,
 
 
@@ -150,6 +187,7 @@ Timers = {
     update = function(dt)
         if Timers.paused then return end
 
+        local _dirty = false
         local i
         local l = Timers.list
         for i=#l,1,-1 do
@@ -165,7 +203,26 @@ Timers = {
                         t.callback(t)
                     end
                     table.remove(l, i)
+                    _dirty = true
                 end
+            end
+
+            if t.origin._dirty then
+                t.origin._dirty = nil
+                _dirty = true
+            end
+        end
+
+        if _dirty then
+            _rebuild_draw_list()
+        end
+    end,
+
+    draw = function()
+        for i=1,#Timers.drawList do
+            local t = Timers.drawList[i]
+            if t.draw then
+                t.draw(t)
             end
         end
     end,
@@ -179,6 +236,7 @@ end
 
 local function init()
     Timers.list = {}
+    Timers.drawList = {}
     Timers.paused = false
     return Timers
 end
