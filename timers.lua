@@ -98,6 +98,10 @@ local Timer_proto = {
 
     thenWait = function(self, T)
         local newTimer = Timers.create(T)
+        return self:hang(newTimer)
+    end,
+
+    hang = function(self, newTimer)
         newTimer.origin = self.origin
         self:andThen(function(timer)
             local launched = clone_self_orig(newTimer)

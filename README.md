@@ -88,9 +88,13 @@ The parameters data and draworder are unique per tree, the other parameters are 
 
     timer_leaf = timer_root:thenWait(timeout)
         -- returns a new timer with a new timeout value, that will be started when timer_root expires.
+    timer_leaf = timer_root:hang(timer_leaf)
+        -- appends a full timer as leaf of timer_root, returns timer_leaf
+        -- timer_root:thenWait(timeout) is equivalent to timer_root:hang(Timers.create(timeout))
 
 
 Once a new leaf has been created, you can still modify the parameters of the root or of the leaf calling the respective functions over them.  You can attach new leaves to any of those.
+
 
 
 **Timer control**:
