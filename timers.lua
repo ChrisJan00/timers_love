@@ -1,3 +1,27 @@
+
+-- timers_love: a small library for timed events
+
+-- zlib license
+-- Copyright (c) 2016 Christiaan Janssen
+
+-- This software is provided 'as-is', without any express or implied
+-- warranty. In no event will the authors be held liable for any damages
+-- arising from the use of this software.
+
+-- Permission is granted to anyone to use this software for any purpose,
+-- including commercial applications, and to alter it and redistribute it
+-- freely, subject to the following restrictions:
+
+-- 1. The origin of this software must not be misrepresented; you must not
+--    claim that you wrote the original software. If you use this software
+--    in a product, an acknowledgement in the product documentation would be
+--    appreciated but is not required.
+-- 2. Altered source versions must be plainly marked as such, and must not be
+--    misrepresented as being the original software.
+-- 3. This notice may not be removed or altered from any source distribution.
+
+
+
 local _rebuild_draw_list
 local function clone_self_orig(timer)
     local copy = Timers.create(timer.timeout)
@@ -99,9 +123,10 @@ local Timer_proto = {
             if Timers.list[i].origin == self.origin then
                 table.remove(Timers.list, i)
                 _rebuild_draw_list()
-                return
+                return self
             end
         end
+        return self
     end,
 
     pause = function(self)
@@ -230,7 +255,7 @@ Timers = {
 
 -- convenience function
 function Timers.setTimeout(func, time)
-    return Timers.create(time):done(func):start()
+    return Timers.create(time):andThen(func):start()
 end
 
 
