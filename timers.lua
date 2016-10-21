@@ -78,8 +78,8 @@ local Timer_proto = {
         if self.draw then
             local func = self.draw
             self.draw = function(timer)
-                func(elapsed)
-                draw(elapsed)
+                func(timer)
+                draw(timer)
             end
         else
             self.draw = draw
