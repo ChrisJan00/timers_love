@@ -341,6 +341,7 @@ Tests = {
 
 
     function()
+        -- testing that update is called only on timeout
         local val = 1
         Timers.setTimeout(function() val = 3 end, 1)
 
@@ -352,6 +353,65 @@ Tests = {
         check(val == 3)
         check(#Timers.list == 0)
 
+    end,
+
+    function()
+        -- multiple inits+draws+updates per step
+        local val=0
+        local timer13 = Timers.create(1)
+            :prepare(function() val = val + 1 end)
+            :prepare(function() val = val + 2 end)
+
+        check(val == 0)
+        timer13:start()
+        check(val == 3)
+        Timers.update(1)
+        check(val == 3)
+        Timers.draw()
+        check(val == 3)
+
+        local timer14 = Timers.create(1)
+            :withUpdate(function(dt) val = val + 4 end)
+            :withUpdate(function(dt) val = val + 8 end)
+
+        check(val == 3)
+        timer14:start()
+        check(val == 3)
+        Timers.update(1)
+        check(val == 15)
+        Timers.draw()
+        check(val == 15)
+
+        local timer15 = Timers.create(1)
+            :withDraw(function() val = val + 16 end)
+            :withDraw(function() val = val + 32 end)
+        check(val == 15)
+        timer15:start()
+        check(val == 15)
+        Timers.draw()
+        check(val == 63)
+        Timers.update(1)
+
+        check(#Timers.list == 0)
+    end,
+
+    function()
+        -- test reference
+        local timer16 = Timers.create():withData({id = 16})
+        local timer17 = Timers.create():withData({id = 17})
+
+        check(timer16.data.id == 16)
+        check(timer17.data.id == 17)
+
+        timer16:hang(timer17)
+
+        check(timer16.data.id == 16)
+        check(timer17.data.id == 17)
+        check(timer16:ref().data.id == 16)
+        check(timer17:ref().data.id == 16)
+
+        check(timer16:getData().id == 16)
+        check(timer17:getData().id == 16)
     end
 }
 
