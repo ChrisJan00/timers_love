@@ -106,7 +106,7 @@ local Timer_proto = {
         self:andThen(function(timer)
             local launched = clone_self_orig(newTimer)
             launched.origin = timer.origin
-            if launched.init then launcher:init() end
+            if launched.init then launched:init() end
             table.insert(Timers.list, launched)
             _rebuild_draw_list()
         end)
