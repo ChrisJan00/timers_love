@@ -180,8 +180,7 @@ local Timer_proto = {
     end,
 
     getData = function(self)
-        -- tree data takes precedence
-        return self.origin.data or self.data
+        return self.origin.data
     end,
 
     fork = function(self)
