@@ -25,6 +25,7 @@
 local _rebuild_draw_list
 local function clone_self_orig(timer)
     local copy = Timers.create(timer.timeout)
+    copy.init = timer.init
     copy.update = timer.update
     copy.callback = timer.callback
     copy.origin.data = timer.origin.data
@@ -102,6 +103,10 @@ local Timer_proto = {
     end,
 
     hang = function(self, newTimer)
+        -- move data if necessary
+        if not self.origin.data and newTimer.origin.data then
+            self.origin.data = newTimer.origin.data
+        end
         newTimer.origin = self.origin
         self:andThen(function(timer)
             local launched = clone_self_orig(newTimer)
@@ -175,7 +180,8 @@ local Timer_proto = {
     end,
 
     getData = function(self)
-        return self.origin.data
+        -- tree data takes precedence
+        return self.origin.data or self.data
     end,
 
     fork = function(self)

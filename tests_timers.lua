@@ -525,6 +525,84 @@ Tests = {
         Timers.update(0.5)
         check(timer22:isRunning() == false)
 
+    end,
+
+    function()
+        -- regression test (setting prepare WITHOUT data)
+        local test_data = { a = 1 }
+        local a1 = Timers.create(2)
+            :prepare(function(timer) test_data.a = 2 end)
+            :andThen(function(timer)
+                test_data.a = 5 end)
+        local a2 = Timers.create(2)
+            :andThen(function(timer) test_data.a = 7 end)
+
+        local tree = Timers.create()
+        tree:hang(a1)
+        tree:thenWait(1):hang(a2)
+
+        check(test_data.a == 1)
+
+        tree:start()
+
+        -- the root doesn't have an init
+        check(test_data.a == 1)
+
+        -- launch first animation, will trigger its init
+        Timers.update(0)
+        check(test_data.a == 2)
+
+        -- continue first animation
+        Timers.update(1)
+        check(test_data.a == 2)
+
+        -- finish first animation, will trigger its end
+        Timers.update(1)
+        check(test_data.a == 5)
+
+        -- -- finish second animation, will trigger its end
+        Timers.update(1)
+        check(test_data.a == 7)
+    end,
+
+    function()
+        -- regression test (setting prepare with data)
+        local test_data = { a = 1 }
+        local a1
+        a1 = Timers.create(2):withData(test_data)
+            :prepare(function(timer)
+                timer:getData().a = 2 end)
+            :andThen(function(timer)  timer:getData().a = 5 end)
+        local a2 = Timers.create(2):withData(test_data)
+            :andThen(function(timer) timer:getData().a = 7 end)
+
+        local tree = Timers.create()
+        tree:hang(a1)
+        tree:thenWait(1):hang(a2)
+
+        check(test_data.a == 1)
+
+        tree:start()
+
+        -- the root doesn't have an init
+        check(test_data.a == 1)
+
+        -- launch first animation, will trigger its init
+        Timers.update(0)
+        check(test_data.a == 2)
+
+        -- continue first animation
+        Timers.update(1)
+        check(test_data.a == 2)
+
+        -- finish first animation, will trigger its end
+        Timers.update(1)
+        check(test_data.a == 5)
+
+        -- finish second animation, will trigger its end
+        Timers.update(1)
+        check(test_data.a == 7)
+
     end
 }
 
