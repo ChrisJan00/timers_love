@@ -108,6 +108,7 @@ local Timer_proto = {
             launched.origin = timer.origin
             if launched.init then launched:init() end
             table.insert(Timers.list, launched)
+            launched.origin._running = true
             _rebuild_draw_list()
         end)
         return newTimer
@@ -128,6 +129,7 @@ local Timer_proto = {
         self.origin.elapsed = 0
         if self.origin.init then self.origin:init() end
         table.insert(Timers.list, self.origin)
+        self.origin._running = true
         _rebuild_draw_list()
         return self
     end,
@@ -136,6 +138,7 @@ local Timer_proto = {
         for i=1,#Timers.list do
             if Timers.list[i].origin == self.origin then
                 table.remove(Timers.list, i)
+                self.origin._running = false
                 _rebuild_draw_list()
                 return self
             end
@@ -155,6 +158,10 @@ local Timer_proto = {
 
     isPaused = function(self)
         return self.origin.paused
+    end,
+
+    isRunning = function(self)
+        return self.origin._running or false
     end,
 
     withTimeout = function(self, t)
@@ -238,6 +245,7 @@ Timers = {
                 end
 
                 if t.elapsed >= t.timeout then
+                    t.origin._running = false
                     if t.callback then
                         t.callback(t)
                     end

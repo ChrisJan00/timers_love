@@ -109,6 +109,8 @@ Once a new leaf has been created, you can still modify the parameters of the roo
         --  pauses/unpauses timer's tree, if currently running.  If not, it will start paused.
     is_paused = timer:isPaused()
         --  to check the current 'pause' status of the tree
+    is_running = timer:isRunning()
+        --  returns true if the tree is in the controllers list (paused or not)
 
 
 These methods affect the timer's tree, regardless of which of the leaves is currently running.  You can view the whole tree as a single timer for that matter, regardless of internal structure.

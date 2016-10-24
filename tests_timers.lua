@@ -506,6 +506,25 @@ Tests = {
         Timers.update(1)
         check(d_full_tree.iter == 8)
 
+    end,
+
+    function()
+        -- test "running" property
+
+        local timer22 = Timers.create(1):thenWait(1)
+
+        check(timer22:isRunning() == false)
+        timer22:start()
+        check(timer22:isRunning() == true)
+        Timers.update(0.5)
+        check(timer22:isRunning() == true)
+        Timers.update(0.5)
+        check(timer22:isRunning() == true)
+        Timers.update(0.5)
+        check(timer22:isRunning() == true)
+        Timers.update(0.5)
+        check(timer22:isRunning() == false)
+
     end
 }
 
