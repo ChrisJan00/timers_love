@@ -129,6 +129,13 @@ There is no way to access and modify the 'leaves' of a timer tree, from the root
 
 The existence of fork() is to overcome the problem of wanting to have two or more instances of the same tree running in parallel, without having to recreate it from scratch.  The intended use is to change the data_object of the fork and launch it in parallel to the original tree.
 
+**Looping timers**:
+
+    timer = timer:thenRestart()
+        -- once this timer expires, restart the tree (infinite loop)
+    timer = timer:thenRestartLast()
+        -- once this timer expires, restart itself: the last leaf of the tree (infinite loop)
+
 
 Timer controller
 ----------------

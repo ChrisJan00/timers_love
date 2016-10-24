@@ -113,6 +113,16 @@ local Timer_proto = {
         return newTimer
     end,
 
+    thenRestart = function(self)
+        self:hang(self.origin)
+        return self
+    end,
+
+    thenRestartLast = function(self)
+        self:hang(self)
+        return self
+    end,
+
     start = function(self)
         self:cancel()
         self.origin.elapsed = 0

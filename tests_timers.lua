@@ -412,6 +412,100 @@ Tests = {
 
         check(timer16:getData().id == 16)
         check(timer17:getData().id == 16)
+    end,
+
+    function()
+        -- test restart
+        local inc_func = function(timer) timer:getData().iter = timer:getData().iter + 1 end
+        local inc_double = function(timer) timer:getData().iter = timer:getData().iter + 2 end
+
+        local d_repeat = { iter = 1 }
+        local timer18 = Timers.create(1):withData(d_repeat):andThen(inc_func):thenRestart()
+
+        timer18:start()
+
+        check(d_repeat.iter == 1)
+        Timers.update(0.5)
+        check(d_repeat.iter == 1)
+        Timers.update(0.5)
+        check(d_repeat.iter == 2)
+        Timers.update(1)
+        check(d_repeat.iter == 3)
+        Timers.update(1)
+        check(d_repeat.iter == 4)
+        timer18:cancel()
+        Timers.update(1)
+        check(d_repeat.iter == 4)
+
+        -- test no-restart by accident (as I implemented restart, make sure that it only happens when called)
+
+        local d_norepeat = { iter = 1 }
+        local timer19 = Timers.create(1):withData(d_norepeat):andThen(inc_func)
+
+        timer19:start()
+
+        check(d_repeat.iter == 4)
+        check(d_norepeat.iter == 1)
+        Timers.update(0.5)
+        check(d_repeat.iter == 4)
+        check(d_norepeat.iter == 1)
+        Timers.update(0.5)
+        check(d_repeat.iter == 4)
+        check(d_norepeat.iter == 2)
+        Timers.update(1)
+        check(d_repeat.iter == 4)
+        check(d_norepeat.iter == 2)
+        Timers.update(1)
+        check(d_repeat.iter == 4)
+        check(d_norepeat.iter == 2)
+
+        -- test restart leaf instead of origin
+        -- (for example, an animation with an "intro" and then a loop afterwards)
+
+        local d_intro = { iter = 1 }
+        local timer20 = Timers.create(1):withData(d_intro):andThen(inc_func)
+            :thenWait(1):andThen(inc_double)
+            :thenRestartLast()
+
+        timer20:start()
+
+        check(d_intro.iter == 1)
+        Timers.update(1)
+        check(d_intro.iter == 2)
+        Timers.update(1)
+        check(d_intro.iter == 4)
+        Timers.update(1)
+        check(d_intro.iter == 6)
+        Timers.update(1)
+        check(d_intro.iter == 8)
+        timer20:cancel()
+        Timers.update(1)
+        check(d_intro.iter == 8)
+
+        local d_full_tree = { iter = 1 }
+        local timer21 = Timers.create(1):withData(d_full_tree):andThen(inc_func)
+            :thenWait(1):andThen(inc_double)
+            :thenRestart()
+
+        timer21:start()
+
+        check(d_full_tree.iter == 1)
+        Timers.update(1)
+        check(d_full_tree.iter == 2)
+        Timers.update(1)
+        check(d_full_tree.iter == 4)
+        Timers.update(1)
+        check(d_full_tree.iter == 5)
+        Timers.update(1)
+        check(d_full_tree.iter == 7)
+        Timers.update(1)
+        check(d_full_tree.iter == 8)
+        timer21:cancel()
+        Timers.update(1)
+        check(d_full_tree.iter == 8)
+        Timers.update(1)
+        check(d_full_tree.iter == 8)
+
     end
 }
 
