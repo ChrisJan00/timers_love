@@ -604,38 +604,91 @@ Tests = {
 
     function()
         -- regression: repeated calls to init in tree
-        do
-            --  this case passes. restarting external animation from single animation
-            local container = { count = 0 }
+        --  this case passes. restarting external animation from single animation
+        local container = { count = 0 }
+        Timers.cancelAll()
 
-            local thirdA = Timers.create(1):thenRestart():start()
-            local leaf = Timers.create(1):prepare(function()
-                container.count = container.count + 1
-                thirdA:start()
-                end)
+        local thirdA = Timers.create(1):thenRestart():start()
+        local leaf = Timers.create(1):prepare(function()
+            container.count = container.count + 1
+            thirdA:start()
+            end)
 
-            check(container.count == 0)
-            leaf:start()
-            Timers.update(1)
-            check(container.count == 1)
-        end
-
-        do
-            --  this case fails. restarting external animation from single animation in a series (chained, not root)
-            local container = { count = 0 }
-
-            local thirdA = Timers.create(1):thenRestart():start()
-            local leaf = Timers.create(1):thenWait(1):prepare(function()
-                container.count = container.count + 1
-                thirdA:start()
-                end)
-
-            check(container.count == 0)
-            leaf:start()
-            Timers.update(1)
-            check(container.count == 1)
-        end
+        check(container.count == 0)
+        leaf:start()
+        Timers.update(1)
+        check(container.count == 1)
+        Timers.cancelAll()
     end,
+
+    function()
+        --  this case fails. restarting external animation from single animation in a series (chained, not root)
+        -- update: now it's fixed
+        local container = { count = 0 }
+        Timers.cancelAll()
+
+        local thirdA = Timers.create(1):thenRestart():start()
+        local leaf = Timers.create(1):thenWait(1):prepare(function()
+            container.count = container.count + 1
+            thirdA:start()
+            end)
+
+        check(container.count == 0)
+        leaf:start()
+        Timers.update(1)
+        check(container.count == 1)
+        Timers.cancelAll()
+    end,
+
+    function()
+            -- next regression: repeated third
+            local container = { count = 0 }
+            Timers.cancelAll()
+
+            local thirdA = Timers.create(1):andThen(function() container.count = container.count + 1 end):thenRestart():start()
+            local leaf = Timers.create(0):thenWait(0.5):andThen(function()
+                thirdA:start()
+                end)
+
+            check(container.count == 0)
+            Timers.update(1)
+            check(container.count == 1)
+            Timers.update(1)
+            check(container.count == 2)
+            leaf:start()
+            Timers.update(0) -- launch leaf
+            Timers.update(0.5) -- execute leaf: restart third
+            check(container.count == 2) -- therefore still 2
+            Timers.update(1)
+            check(container.count == 3)
+            Timers.update(1);
+            check(container.count == 4);
+            Timers.update(1);
+            check(container.count == 5);
+
+            Timers.cancelAll()
+    end,
+
+    function()
+        -- I have a tree with two leaves running in parallel
+        -- I call start
+        -- both should restart (single origin)
+        Timers.cancelAll()
+
+        local root = Timers.create(1)
+        root:thenWait(1)
+        root:thenWait(1)
+
+
+
+        check(#Timers.list == 0)
+        root:start()
+        check(#Timers.list == 1)
+        Timers.update(1)
+        check(#Timers.list == 2)
+        root:start()
+        check(#Timers.list == 1)
+    end
 }
 
 

@@ -24,6 +24,8 @@
 
 local _rebuild_draw_list
 local _purge
+local _timers_busy = false
+local _delayed_commands = {}
 local function clone_self_orig(timer)
     local copy = Timers.create(timer.timeout)
     copy.init = timer.init
@@ -132,6 +134,10 @@ local Timer_proto = {
 
 
     start = function(self)
+        if _timers_busy then
+            table.insert(_delayed_commands, function() self:start() end)
+            return self
+        end
         if self.origin._running > 0 then
             self.origin._running = 0
             _purge()
@@ -145,6 +151,10 @@ local Timer_proto = {
     end,
 
     cancel = function(self)
+        if _timers_busy then
+            table.insert(_delayed_commands, function() self:cancel() end)
+            return self
+        end
         self.origin._running = 0
         _purge()
         _rebuild_draw_list()
@@ -205,7 +215,6 @@ _rebuild_draw_list = function()
         function(a,b) return a.origin.draworder < b.origin.draworder end)
 end
 
-local _timers_busy = false
 _purge = function()
     if _timers_busy then return end
     for i=#Timers.list,1,-1 do
@@ -292,6 +301,13 @@ Timers = {
             _rebuild_draw_list()
         end
         _timers_busy = false
+
+        if (#_delayed_commands > 0) then
+            for i=1,#_delayed_commands do
+                _delayed_commands[i]()
+            end
+            _delayed_commands = {}
+        end
     end,
 
     draw = function()
