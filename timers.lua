@@ -103,6 +103,16 @@ local Timer_proto = {
         return self:hang(newTimer)
     end,
 
+    thenRestart = function(self)
+        self:hang(self.origin)
+        return self
+    end,
+
+    thenRestartLast = function(self)
+        self:hang(self)
+        return self
+    end,
+
     hang = function(self, newTimer)
         -- move data if necessary
         if not self.origin.data and newTimer.origin.data then
@@ -120,15 +130,6 @@ local Timer_proto = {
         return newTimer
     end,
 
-    thenRestart = function(self)
-        self:hang(self.origin)
-        return self
-    end,
-
-    thenRestartLast = function(self)
-        self:hang(self)
-        return self
-    end,
 
     start = function(self)
         if self.origin._running > 0 then
@@ -252,14 +253,14 @@ Timers = {
         if Timers.paused then return end
         _timers_busy = true
 
-        local dead_timer_indices = {}
+        local _dead_timer_indices = {}
         local _dirty = false
         local i
         local l = Timers.list
         for i=#l,1,-1 do
             local t = l[i]
             if t.origin._running == 0 then
-                table.insert(dead_timer_indices, i)
+                table.insert(_dead_timer_indices, i)
             elseif not t.origin.paused then
                 t.elapsed = t.elapsed + dt
                 if t.update then
@@ -272,7 +273,7 @@ Timers = {
                         t.callback(t)
                     end
                     -- table.remove(l, i)
-                    table.insert(dead_timer_indices, i)
+                    table.insert(_dead_timer_indices, i)
                     _dirty = true
                 end
             end
@@ -283,12 +284,12 @@ Timers = {
             end
         end
 
-        if _dirty then
-            _rebuild_draw_list()
+        for i=1,#_dead_timer_indices do
+            table.remove(l, _dead_timer_indices[i])
         end
 
-        for i=1,#dead_timer_indices do
-            table.remove(l, dead_timer_indices[i])
+        if _dirty then
+            _rebuild_draw_list()
         end
         _timers_busy = false
     end,
