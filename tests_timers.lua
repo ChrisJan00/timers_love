@@ -568,11 +568,9 @@ Tests = {
     function()
         -- regression test (setting prepare with data)
         local test_data = { a = 1 }
-        local a1
-        a1 = Timers.create(2):withData(test_data)
-            :prepare(function(timer)
-                timer:getData().a = 2 end)
-            :andThen(function(timer)  timer:getData().a = 5 end)
+        local a1 = Timers.create(2):withData(test_data)
+            :prepare(function(timer) timer:getData().a = 2 end)
+            :andThen(function(timer) timer:getData().a = 5 end)
         local a2 = Timers.create(2):withData(test_data)
             :andThen(function(timer) timer:getData().a = 7 end)
 
