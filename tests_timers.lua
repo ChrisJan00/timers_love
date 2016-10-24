@@ -532,8 +532,7 @@ Tests = {
         local test_data = { a = 1 }
         local a1 = Timers.create(2)
             :prepare(function(timer) test_data.a = 2 end)
-            :andThen(function(timer)
-                test_data.a = 5 end)
+            :andThen(function(timer) test_data.a = 5 end)
         local a2 = Timers.create(2)
             :andThen(function(timer) test_data.a = 7 end)
 
@@ -560,7 +559,7 @@ Tests = {
         Timers.update(1)
         check(test_data.a == 5)
 
-        -- -- finish second animation, will trigger its end
+        -- finish second animation, will trigger its end
         Timers.update(1)
         check(test_data.a == 7)
     end,
@@ -601,7 +600,42 @@ Tests = {
         Timers.update(1)
         check(test_data.a == 7)
 
-    end
+    end,
+
+    function()
+        -- regression: repeated calls to init in tree
+        do
+            --  this case passes. restarting external animation from single animation
+            local container = { count = 0 }
+
+            local thirdA = Timers.create(1):thenRestart():start()
+            local leaf = Timers.create(1):prepare(function()
+                container.count = container.count + 1
+                thirdA:start()
+                end)
+
+            check(container.count == 0)
+            leaf:start()
+            Timers.update(1)
+            check(container.count == 1)
+        end
+
+        do
+            --  this case fails. restarting external animation from single animation in a series (chained, not root)
+            local container = { count = 0 }
+
+            local thirdA = Timers.create(1):thenRestart():start()
+            local leaf = Timers.create(1):thenWait(1):prepare(function()
+                container.count = container.count + 1
+                thirdA:start()
+                end)
+
+            check(container.count == 0)
+            leaf:start()
+            Timers.update(1)
+            check(container.count == 1)
+        end
+    end,
 }
 
 

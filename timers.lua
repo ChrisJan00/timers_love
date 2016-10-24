@@ -23,6 +23,7 @@
 
 
 local _rebuild_draw_list
+local _purge
 local function clone_self_orig(timer)
     local copy = Timers.create(timer.timeout)
     copy.init = timer.init
@@ -113,7 +114,7 @@ local Timer_proto = {
             launched.origin = timer.origin
             if launched.init then launched:init() end
             table.insert(Timers.list, launched)
-            launched.origin._running = true
+            launched.origin._running = launched.origin._running + 1
             _rebuild_draw_list()
         end)
         return newTimer
@@ -130,24 +131,22 @@ local Timer_proto = {
     end,
 
     start = function(self)
-        self:cancel()
+        if self.origin._running > 0 then
+            self.origin._running = 0
+            _purge()
+        end
         self.origin.elapsed = 0
         if self.origin.init then self.origin:init() end
         table.insert(Timers.list, self.origin)
-        self.origin._running = true
+        self.origin._running = 1
         _rebuild_draw_list()
         return self
     end,
 
     cancel = function(self)
-        for i=1,#Timers.list do
-            if Timers.list[i].origin == self.origin then
-                table.remove(Timers.list, i)
-                self.origin._running = false
-                _rebuild_draw_list()
-                return self
-            end
-        end
+        self.origin._running = 0
+        _purge()
+        _rebuild_draw_list()
         return self
     end,
 
@@ -166,7 +165,7 @@ local Timer_proto = {
     end,
 
     isRunning = function(self)
-        return self.origin._running or false
+        return self.origin._running > 0
     end,
 
     withTimeout = function(self, t)
@@ -196,13 +195,23 @@ _rebuild_draw_list = function()
     Timers.drawList = {}
     for i=1,#Timers.list do
         local t = Timers.list[i]
-        if t.draw then
+        if t.draw and t.origin._running > 0 then
             table.insert(Timers.drawList, t)
         end
     end
 
     table.sort(Timers.drawList,
         function(a,b) return a.origin.draworder < b.origin.draworder end)
+end
+
+local _timers_busy = false
+_purge = function()
+    if _timers_busy then return end
+    for i=#Timers.list,1,-1 do
+        if Timers.list[i].origin._running == 0 then
+            table.remove(Timers.list, i)
+        end
+    end
 end
 
 Timers = {
@@ -214,6 +223,7 @@ Timers = {
         }
         setmetatable(newTimer, { __index = function(table, key) return Timer_proto[key] end })
         newTimer.origin = newTimer
+        newTimer.origin._running = 0
         return newTimer
     end,
 
@@ -229,6 +239,9 @@ Timers = {
 
     -- general cancel all
     cancelAll = function()
+        for i=1,#Timers.list do
+            Timers.list[i].origin._running = 0
+        end
         Timers.list = {}
         _rebuild_draw_list()
     end,
@@ -237,24 +250,29 @@ Timers = {
     -- general update (must be called from love.update)
     update = function(dt)
         if Timers.paused then return end
+        _timers_busy = true
 
+        local dead_timer_indices = {}
         local _dirty = false
         local i
         local l = Timers.list
         for i=#l,1,-1 do
             local t = l[i]
-            if not t.origin.paused then
+            if t.origin._running == 0 then
+                table.insert(dead_timer_indices, i)
+            elseif not t.origin.paused then
                 t.elapsed = t.elapsed + dt
                 if t.update then
                     t.update(t.elapsed, t)
                 end
 
                 if t.elapsed >= t.timeout then
-                    t.origin._running = false
+                    t.origin._running = t.origin._running - 1
                     if t.callback then
                         t.callback(t)
                     end
-                    table.remove(l, i)
+                    -- table.remove(l, i)
+                    table.insert(dead_timer_indices, i)
                     _dirty = true
                 end
             end
@@ -268,6 +286,11 @@ Timers = {
         if _dirty then
             _rebuild_draw_list()
         end
+
+        for i=1,#dead_timer_indices do
+            table.remove(l, dead_timer_indices[i])
+        end
+        _timers_busy = false
     end,
 
     draw = function()
