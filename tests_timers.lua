@@ -397,21 +397,24 @@ Tests = {
 
     function()
         -- test reference
-        local timer16 = Timers.create():withData({id = 16})
-        local timer17 = Timers.create():withData({id = 17})
+        local timer16 = Timers.create()
+        local timer17 = Timers.create()
 
-        check(timer16.data.id == 16)
-        check(timer17.data.id == 17)
+        timer16.extra_field = 16
+        timer17.extra_field = 17
+
+        check(timer16.extra_field == 16)
+        check(timer17.extra_field == 17)
+        check(timer16:ref().extra_field == 16)
+        check(timer17:ref().extra_field == 17)
 
         timer16:hang(timer17)
 
-        check(timer16.data.id == 16)
-        check(timer17.data.id == 17)
-        check(timer16:ref().data.id == 16)
-        check(timer17:ref().data.id == 16)
+        check(timer16.extra_field == 16)
+        check(timer17.extra_field == 17)
+        check(timer16:ref().extra_field == 16)
+        check(timer17:ref().extra_field == 16)
 
-        check(timer16:getData().id == 16)
-        check(timer17:getData().id == 16)
     end,
 
     function()
@@ -688,6 +691,92 @@ Tests = {
         check(#Timers.list == 2)
         root:start()
         check(#Timers.list == 1)
+    end,
+
+    function()
+        -- withData: should be merged across leaves
+        do
+            -- leaf accesses root's data
+            local root = Timers.create():withData({ a = 1 });
+            local leaf = Timers.create();
+
+            check(not leaf:getData());
+            check(root:getData().a == 1);
+            root:hang(leaf);
+            check(root:getData().a == 1);
+            check(leaf:getData().a == 1);
+        end
+        do
+            -- root gets leaf's data
+            local root = Timers.create();
+            local leaf = Timers.create():withData({ b = 2 });
+
+            check(not root:getData());
+            check(leaf:getData().b == 2);
+            root:hang(leaf);
+            check(root:getData().b == 2);
+            check(leaf:getData().b == 2);
+        end
+        do
+            -- root and leaf's data is merged
+            local root = Timers.create():withData({ a = 1 });
+            local leaf = Timers.create():withData({ b = 2 });
+
+            check(root:getData().a == 1);
+            check(not root:getData().b);
+            check(leaf:getData().b == 2);
+            check(not leaf:getData().a);
+
+            root:hang(leaf);
+
+            check(root:getData().a == 1);
+            check(root:getData().b == 2);
+            check(leaf:getData().a == 1);
+            check(leaf:getData().b == 2);
+        end
+        do
+            -- three-way merge
+            local root = Timers.create():withData({ a = 1 });
+            local leaf1 = Timers.create():withData({ b = 2 });
+            local leaf2 = Timers.create():withData({ c = 3 });
+
+            check(root:getData().a == 1);
+            check(not root:getData().b);
+            check(not root:getData().c);
+            check(leaf1:getData().b == 2);
+            check(not leaf1:getData().a);
+            check(not leaf1:getData().c);
+            check(leaf2:getData().c == 3);
+            check(not leaf2:getData().a);
+            check(not leaf2:getData().b);
+
+            root:hang(leaf1);
+            root:hang(leaf2);
+
+            check(root:getData().a == 1);
+            check(root:getData().b == 2);
+            check(root:getData().c == 3);
+            check(leaf1:getData().a == 1);
+            check(leaf1:getData().b == 2);
+            check(leaf1:getData().c == 3);
+            check(leaf2:getData().a == 1);
+            check(leaf2:getData().b == 2);
+            check(leaf2:getData().c == 3);
+
+        end
+        do
+            -- overwrite duplicated keys (should not be duplicated keys, but I am not checking it...)
+            local root = Timers.create():withData({ d = 1 });
+            local leaf = Timers.create():withData({ d = 2 });
+
+            check(root:getData().d == 1);
+            check(leaf:getData().d == 2);
+
+            root:hang(leaf);
+
+            check(root:getData().d == 2);
+            check(leaf:getData().d == 2);
+        end
     end
 }
 

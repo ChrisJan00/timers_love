@@ -117,8 +117,14 @@ local Timer_proto = {
 
     hang = function(self, newTimer)
         -- move data if necessary
-        if not self.origin.data and newTimer.origin.data then
-            self.origin.data = newTimer.origin.data
+        if newTimer.origin.data then
+            if not self.origin.data then
+                self.origin.data = newTimer.origin.data
+            else
+                for k,v in pairs(newTimer.origin.data) do
+                    self.origin.data[k] = v
+                end
+            end
         end
         newTimer.origin = self.origin
         self:andThen(function(timer)
