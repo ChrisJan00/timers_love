@@ -777,6 +777,35 @@ Tests = {
             check(root:getData().d == 2);
             check(leaf:getData().d == 2);
         end
+    end,
+    function()
+        -- more coverage
+        Timers.cancelAll()
+
+        -- cancelling a timer in the middle of an update
+        local self_interrupt = Timers.create(2)
+            :withUpdate(function(elapsed, timer) timer:cancel() end)
+            :start()
+
+        check(#Timers.list == 1)
+        check(self_interrupt:isRunning() == true)
+        Timers.update(1)
+        check(#Timers.list == 0)
+
+        -- killing one timer from another
+        local victim = Timers.create(2)
+        local killer = Timers.create(2)
+        :withUpdate(function() victim:cancel() end)
+
+        check(#Timers.list == 0)
+        victim:start()
+        check(#Timers.list == 1)
+        killer:start()
+        check(#Timers.list == 2)
+        Timers.update(1)
+        check(#Timers.list == 1)
+
+        Timers.cancelAll()
     end
 }
 
@@ -784,5 +813,6 @@ Tests = {
 for i,test in ipairs(Tests) do
     io.write("Test "..i.."...")
     local passed,err = pcall(test)
+    Timers.cancelAll() -- make sure that Timers is clean before starting a new test
     print(passed and "OK" or "failed at "..err)
 end

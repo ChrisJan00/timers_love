@@ -157,11 +157,11 @@ local Timer_proto = {
     end,
 
     cancel = function(self)
+        self.origin._running = 0
         if _timers_busy then
             table.insert(_delayed_commands, function() self:cancel() end)
             return self
         end
-        self.origin._running = 0
         _purge()
         _rebuild_draw_list()
         return self
