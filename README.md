@@ -91,6 +91,10 @@ The parameters data and draworder are unique per tree, the other parameters are 
     timer_leaf = timer_root:hang(timer_leaf)
         -- appends a full timer as leaf of timer_root, returns timer_leaf
         -- timer_root:thenWait(timeout) is equivalent to timer_root:hang(Timers.create(timeout))
+    timer_leaf = timer_root:append(timer_leaf)
+        -- appends a tree to another tree.  The difference with hang is that you can pass a leaf of the
+        second tree to this function, and the full tree will be appended.  With hang, only the passed
+        leaf (and its children) would be appended.
 
 
 Once a new leaf has been created, you can still modify the parameters of the root or of the leaf calling the respective functions over them.  You can attach new leaves to any of those.

@@ -138,6 +138,11 @@ local Timer_proto = {
         return newTimer
     end,
 
+    append = function(self, newTimer)
+        self:hang(newTimer:ref())
+        newTimer.origin = self.origin
+        return newTimer
+    end,
 
     start = function(self)
         if _timers_busy then

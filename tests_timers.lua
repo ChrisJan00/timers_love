@@ -806,6 +806,29 @@ Tests = {
         check(#Timers.list == 1)
 
         Timers.cancelAll()
+    end,
+
+    function()
+        Timers.cancelAll()
+
+        -- connect trees
+        local data = { d = 0 }
+        local tree_A = Timers.create():prepare(function() data.d = 1 end)
+        local tree_B = Timers.create(1):withUpdate(function() data.d = 2 end):thenWait(1):withUpdate(function() data.d = 3 end)
+
+
+        check(data.d == 0)
+        tree_A:append(tree_B):start()
+        check(data.d == 1)
+        Timers.update(0)
+        check(data.d == 1)
+        Timers.update(1)
+        check(data.d == 2)
+        Timers.update(1)
+        check(data.d == 3)
+
+        Timers.cancelAll()
+
     end
 }
 
