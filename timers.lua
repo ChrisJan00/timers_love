@@ -31,6 +31,7 @@ local function clone_self_orig(timer)
     copy.init = timer.init
     copy.update = timer.update
     copy.callback = timer.callback
+    copy.draw = timer.draw
     copy.origin.data = timer.origin.data
     return copy
 end

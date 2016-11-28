@@ -285,9 +285,7 @@ Tests = {
 
         local container = { text = "" }
         -- test draw
-        local timer9 = Timers.create(1):withData(container):withDraw(function(timer)
-                timer:getData().text = timer:getData().text.."A"
-            end)
+        local timer9 = Timers.create(1):withData(container)
         local timer10 = timer9:fork():withDraw(function(timer)
                 timer:getData().text = timer:getData().text.."B"
             end)
@@ -295,6 +293,12 @@ Tests = {
                 timer:getData().text = timer:getData().text.."C"
             end)
         local timer12 = Timers.create(1) -- deliverately empty
+
+        -- appending draw after the forks have been declared
+        -- because the "draw" functions are accumulated across clones, not replaced
+        timer9:withDraw(function(timer)
+                timer:getData().text = timer:getData().text.."A"
+            end)
 
         -- draw in calling order (because all drawing order is the default, 0)
         -- 11-9-10-12 -> CAB
@@ -307,7 +311,7 @@ Tests = {
         check(container.text == "CAB")
 
         -- one of them has explicit order, the others have default order
-        timer11 = timer9:fork():withDraw(function(timer)
+        timer11 = Timers.create(1):withData(container):withDraw(function(timer)
                 timer:getData().text = timer:getData().text.."D"
             end,2)
 
@@ -829,6 +833,35 @@ Tests = {
 
         Timers.cancelAll()
 
+    end,
+
+    function()
+        Timers.cancelAll()
+
+        -- make sure that draw calls are also executed when they only belong to leaves
+
+        local data = { d = 1 }
+        local single_Draw = Timers.create(1):withDraw(function() data.d = 2 end)
+        local tree_Draw = Timers.create(1):thenWait(1):withDraw(function() data.d = 3 end)
+
+        -- no leaf
+        check(data.d == 1)
+        single_Draw:start()
+        check(data.d == 1)
+        Timers.draw()
+        Timers.update(1)
+        check(data.d == 2)
+
+        -- tree with leaf
+        tree_Draw:start()
+        Timers.draw()
+        check(data.d == 2)
+        Timers.update(0.5)
+        Timers.draw()
+        check(data.d == 2)
+        Timers.update(0.5)
+        Timers.draw()
+        check(data.d == 3)
     end
 }
 
