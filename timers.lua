@@ -116,6 +116,15 @@ local Timer_proto = {
         return self
     end,
 
+    loopNTimes = function(self, times)
+        self:appendData({_loopCount = times}):andThen(function(timer)
+            local d = timer:getData()
+            d._loopCount = d._loopCount - 1
+            if d._loopCount <= 0 then timer:cancel() end
+            end):thenRestart()
+        return self
+    end,
+
     hang = function(self, newTimer)
         -- move data if necessary
         if newTimer.origin.data then
@@ -198,6 +207,20 @@ local Timer_proto = {
 
     withData = function(self, data)
         self.origin.data = data
+        return self
+    end,
+
+    appendData = function(self, data)
+        if not self.origin.data then return self:withData(data) end
+        -- note: duplicated keys will be overwritten
+        -- dictionary part
+        for k,v in pairs(data) do
+            self.origin.data[k] = v
+        end
+        -- array part
+        for i,v in ipairs(data) do
+            self.origin.data[i] = v
+        end
         return self
     end,
 

@@ -862,6 +862,116 @@ Tests = {
         Timers.update(0.5)
         Timers.draw()
         check(data.d == 3)
+    end,
+
+
+    function()
+        -- convenience function for looping a timer a limited number of times
+
+        -- first, straight implementation as a timer
+        local cnt = 0
+        local loopTimer_1 = Timers.create(1):withData({ runCount = 5 }):withUpdate(function() cnt = cnt + 1 end):andThen(function(self)
+            local d = self:getData()
+            d.runCount = d.runCount - 1
+            if d.runCount <= 0 then self:cancel() end
+            end):thenRestart()
+
+        check(cnt == 0)
+        loopTimer_1:start()
+        check(cnt == 0)
+        Timers.update(1)
+        check(cnt == 1)
+        Timers.update(1)
+        check(cnt == 2)
+        Timers.update(1)
+        check(cnt == 3)
+        Timers.update(1)
+        check(cnt == 4)
+        Timers.update(1)
+        check(cnt == 5)
+        Timers.update(1)
+        check(cnt == 5)
+        Timers.update(1)
+        check(cnt == 5)
+
+        cnt = 0
+        check(#Timers.list == 0)
+
+        -- introducing convenience funtion to decorate the timer
+        local function loopNTimes(timer, times)
+            timer:appendData({_loopCount = times}):andThen(function(self)
+                local d = self:getData()
+                d._loopCount = d._loopCount - 1
+                if d._loopCount <= 0 then self:cancel() end
+                end):thenRestart()
+            return timer
+        end
+
+        local loopTimer_2 = Timers.create(1):withUpdate(function() cnt = cnt + 1 end)
+
+        loopNTimes(loopTimer_2, 4)
+
+        check(cnt == 0)
+        loopTimer_2:start()
+        check(cnt == 0)
+        Timers.update(1)
+        check(cnt == 1)
+        Timers.update(1)
+        check(cnt == 2)
+        Timers.update(1)
+        check(cnt == 3)
+        Timers.update(1)
+        check(cnt == 4)
+        Timers.update(1)
+        check(cnt == 4)
+        Timers.update(1)
+        check(cnt == 4)
+        Timers.update(1)
+        check(cnt == 4)
+
+        -- checking that the decorator doesn't destroy the timer's existing data
+        check(#Timers.list == 0)
+        local loopTimer_3 = Timers.create(1):withData({ cnt = 0 }):withUpdate(function(elapsed, timer) timer:getData().cnt = timer:getData().cnt + 1 end)
+        loopNTimes(loopTimer_3, 6)
+
+        check (loopTimer_3:getData().cnt == 0)
+        loopTimer_3:start()
+        check (loopTimer_3:getData().cnt == 0)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 1)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 2)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 3)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 4)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 5)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 6)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 6)
+        Timers.update(1)
+        check (loopTimer_3:getData().cnt == 6)
+
+        -- ported to the library
+        check(#Timers.list == 0)
+        local loopTimer_4 = Timers.create(1):withData({ cnt = 0 }):withUpdate(function(elapsed, timer) timer:getData().cnt = timer:getData().cnt + 1 end):loopNTimes(3)
+
+        check (loopTimer_4:getData().cnt == 0)
+        loopTimer_4:start()
+        check (loopTimer_4:getData().cnt == 0)
+        Timers.update(1)
+        check (loopTimer_4:getData().cnt == 1)
+        Timers.update(1)
+        check (loopTimer_4:getData().cnt == 2)
+        Timers.update(1)
+        check (loopTimer_4:getData().cnt == 3)
+        Timers.update(1)
+        check (loopTimer_4:getData().cnt == 3)
+        Timers.update(1)
+        check (loopTimer_4:getData().cnt == 3)
+
     end
 }
 

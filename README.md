@@ -48,6 +48,8 @@ Timer methods
         -- explicitly replice a timeout value
     timer = timer:withData(data_object)
         -- attaches data_object to timer chain, so that it can be referenced in the callbacks.  New calls will replace data_object
+    timer = timer:appendData(data_object)
+        -- appends content of data_object to existing data.  Calling withData would replace the existing data.
     data_object = timer:getData()
         -- returns the attached data_object
     timer = timer:withDrawOrder(draworder)
@@ -141,6 +143,8 @@ The existence of fork() is to overcome the problem of wanting to have two or mor
         -- once this timer expires, restart the tree (infinite loop)
     timer = timer:thenRestartLast()
         -- once this timer expires, restart itself: the last leaf of the tree (infinite loop)
+    timer = timer:loopNTimes(N)
+        -- make this timer restart its tree N times (finite loop)
 
 
 Timer controller
