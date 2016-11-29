@@ -47,9 +47,9 @@ Timer methods
     timer = timer:withTimeout(timeout)
         -- explicitly replice a timeout value
     timer = timer:withData(data_object)
-        -- attaches data_object to timer chain, so that it can be referenced in the callbacks.  New calls will replace data_object
+        -- attaches data_object to timer chain, so that it can be referenced in the callbacks (by reference).  New calls will replace data_object.
     timer = timer:appendData(data_object)
-        -- appends content of data_object to existing data.  Calling withData would replace the existing data.
+        -- appends content of data_object to existing data (by copy, non-recursive).  Duplicated keys/indices will be overwritten.
     data_object = timer:getData()
         -- returns the attached data_object
     timer = timer:withDrawOrder(draworder)

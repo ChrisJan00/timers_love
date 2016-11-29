@@ -1006,7 +1006,49 @@ Tests = {
 
     check(#Timers.list == 0)
 
-    end
+    end,
+
+    function()
+        -- test withData is reference, but appendData is copy
+        local data = { a = 0 }
+        local refTimer = Timers.create():withData(data):prepare(function(timer) timer:getData().a = timer:getData().a + 1 end)
+        local copyTimer = Timers.create():appendData(data):prepare(function(timer) timer:getData().a = timer:getData().a + 2 end)
+
+        check(data.a == 0)
+        check(refTimer:getData().a == 0)
+        check(copyTimer:getData().a == 0)
+        refTimer:start()
+        copyTimer:start()
+        check(data.a == 1)
+        check(refTimer:getData().a == 1)
+        check(copyTimer:getData().a == 2)
+
+    end,
+
+    function()
+        -- test appending data as array (elements should be overwritten)
+
+        local arr1 = { 1, 2, 3 }
+        local arr2 = { 4, 5 }
+        local overwriteTimer = Timers.create():withData(arr1)
+        local appendTimer = Timers.create():appendData(arr1)
+
+        check(#overwriteTimer:getData() == 3)
+        overwriteTimer:withData(arr2)
+        check(#overwriteTimer:getData() == 2)
+        for i=1,2 do
+            check(overwriteTimer:getData()[i] == i+3)
+        end
+
+        check(#appendTimer:getData() == 3)
+        appendTimer:appendData(arr2)
+        check(#appendTimer:getData() == 3)
+        local expected = {4,5,1}
+        for i=1,2 do
+            check(appendTimer:getData()[i] == expected[i])
+        end
+
+    end,
 }
 
 

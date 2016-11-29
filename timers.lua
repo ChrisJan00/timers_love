@@ -41,13 +41,8 @@ local function _append_internal_data(timer, _data)
         timer.origin._data = _data
     else
         -- append
-        -- dictionary part
         for k,v in pairs(_data) do
             timer.origin._data[k] = v
-        end
-        -- array part
-        for i,v in ipairs(_data) do
-            timer.origin._data[i] = v
         end
     end
     return timer
@@ -144,9 +139,14 @@ local Timer_proto = {
 
     hang = function(self, newTimer)
         _append_internal_data(self, newTimer.origin._data)
-        -- move data if necessary
         if newTimer.origin.data then
-            self:appendData(newTimer.origin.data)
+            if self.origin.data then
+                -- if I already had data, append new one
+                self:appendData(newTimer.origin.data)
+            else
+                -- else just pass the reference
+                self:withData(newTimer.origin.data)
+            end
         end
         newTimer.origin = self.origin
         self:andThen(function(timer)
@@ -223,15 +223,10 @@ local Timer_proto = {
     end,
 
     appendData = function(self, data)
-        if not self.origin.data then return self:withData(data) end
-        -- note: duplicated keys will be overwritten
-        -- dictionary part
+        self.origin.data = self.origin.data or {}
+        -- note: duplicated keys will be overwritten, also indices in array part
         for k,v in pairs(data) do
             self.origin.data[k] = v
-        end
-        -- array part
-        for i,v in ipairs(data) do
-            self.origin.data[i] = v
         end
         return self
     end,
