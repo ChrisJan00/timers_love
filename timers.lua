@@ -22,18 +22,35 @@
 
 
 
-local _rebuild_draw_list
-local _purge
+local _rebuild_draw_list, _append_internal_data, _purge
 local _timers_busy = false
 local _delayed_commands = {}
-local function clone_self_orig(timer)
+local function _clone_self_orig(timer)
     local copy = Timers.create(timer.timeout)
     copy.init = timer.init
     copy.update = timer.update
     copy.callback = timer.callback
     copy.draw = timer.draw
     copy.origin.data = timer.origin.data
+    copy.origin._data = timer.origin._data
     return copy
+end
+
+local function _append_internal_data(timer, _data)
+    if not timer.origin._data then
+        timer.origin._data = _data
+    else
+        -- append
+        -- dictionary part
+        for k,v in pairs(_data) do
+            timer.origin._data[k] = v
+        end
+        -- array part
+        for i,v in ipairs(_data) do
+            timer.origin._data[i] = v
+        end
+    end
+    return timer
 end
 
 local Timer_proto = {
@@ -96,7 +113,7 @@ local Timer_proto = {
     end,
 
     withDrawOrder = function(self, draworder)
-        self.origin.draworder = draworder
+        _append_internal_data(self, {_draworder = draworder})
         self.origin._dirty = true
         return self
     end,
@@ -117,8 +134,8 @@ local Timer_proto = {
     end,
 
     loopNTimes = function(self, times)
-        self:appendData({_loopCount = times}):andThen(function(timer)
-            local d = timer:getData()
+        _append_internal_data(self, {_loopCount = times}):andThen(function(timer)
+            local d = timer.origin._data
             d._loopCount = d._loopCount - 1
             if d._loopCount <= 0 then timer:cancel() end
             end):thenRestart()
@@ -126,19 +143,14 @@ local Timer_proto = {
     end,
 
     hang = function(self, newTimer)
+        _append_internal_data(self, newTimer.origin._data)
         -- move data if necessary
         if newTimer.origin.data then
-            if not self.origin.data then
-                self.origin.data = newTimer.origin.data
-            else
-                for k,v in pairs(newTimer.origin.data) do
-                    self.origin.data[k] = v
-                end
-            end
+            self:appendData(newTimer.origin.data)
         end
         newTimer.origin = self.origin
         self:andThen(function(timer)
-            local launched = clone_self_orig(newTimer)
+            local launched = _clone_self_orig(newTimer)
             launched.origin = timer.origin
             if launched.init then launched:init() end
             table.insert(Timers.list, launched)
@@ -229,7 +241,7 @@ local Timer_proto = {
     end,
 
     fork = function(self)
-        return clone_self_orig(self.origin)
+        return _clone_self_orig(self.origin)
     end,
 
     ref = function(self)
@@ -247,7 +259,7 @@ _rebuild_draw_list = function()
     end
 
     table.sort(Timers.drawList,
-        function(a,b) return a.origin.draworder < b.origin.draworder end)
+        function(a,b) return a.origin._data._draworder < b.origin._data._draworder end)
 end
 
 _purge = function()
@@ -361,11 +373,11 @@ function Timers.setTimeout(func, time)
 end
 
 
-local function init()
+local function _init()
     Timers.list = {}
     Timers.drawList = {}
     Timers.paused = false
     return Timers
 end
 
-return init()
+return _init()

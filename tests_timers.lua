@@ -972,6 +972,40 @@ Tests = {
         Timers.update(1)
         check (loopTimer_4:getData().cnt == 3)
 
+    end,
+
+    function()
+
+    local data = 0
+    local spawner = Timers.create(1)
+    local first_branch = Timers.create(1):thenWait(1):withDraw(function() data = data + 1 end)
+    local second_branch = Timers.create(1):thenWait(1):withDraw(function() data = data + 2 end)
+
+    spawner
+        :hang(first_branch:ref())
+        :hang(second_branch:ref())
+
+    spawner:start()
+    check(data == 0)
+
+    Timers.update(1)
+    Timers.draw()
+    check(data == 0)
+
+    Timers.update(1)
+    Timers.draw()
+    check(data == 1)
+
+    Timers.update(1)
+    Timers.draw()
+    check(data == 3)
+
+    Timers.update(1)
+    Timers.draw()
+    check(data == 3)
+
+    check(#Timers.list == 0)
+
     end
 }
 
