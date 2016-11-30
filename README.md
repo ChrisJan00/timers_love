@@ -70,6 +70,8 @@ The data object is attached to the tree and it's the same for all the timers of 
         -- callback will be called on update.  elapsed is the time elapsed since this individual timer started, in seconds.
     timer = timer:withDraw(function(timer), draworder)
         -- callback will be called on draw.  All timers with draw callbacks are sorted by ascending draworder value.  draworder is an optional parameter, with default value 0.
+    timer = timer:finallly(function(timer))
+        -- callback will be called when timer tree expires or is cancelled.
 
 
 The callbacks are pushed to a stack, using closures.  This means, if you call for example "andThen" two times, both callbacks will be attached, in the order in which this function was called.

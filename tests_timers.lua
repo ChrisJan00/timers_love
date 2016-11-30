@@ -24,7 +24,11 @@
 require 'timers'
 
 local function check(condition)
-    if not condition then error(debug.getinfo(2,"l").currentline) end
+    if not condition then
+        local debugInfo = debug.getinfo(2,"Sl")
+        print("failed check at "..debugInfo.source..":"..debugInfo.currentline)
+        error(false)
+    end
 end
 
 Tests = {
@@ -73,8 +77,6 @@ Tests = {
         check(#Timers.list == 1)
         Timers.cancelAll()
         check(#Timers.list == 0)
-
-        return true
     end,
 
     function()
@@ -98,8 +100,6 @@ Tests = {
         check(#Timers.list == 1)
         timer3:cancel()
         check(#Timers.list == 0)
-
-        return true
     end,
 
     function()
@@ -1049,6 +1049,211 @@ Tests = {
         end
 
     end,
+
+    function()
+        -- testing "finally"
+        local data = { control = 0 }
+        local function incControl() data.control = data.control + 1 end
+
+        do
+            -- simple timer, expiration
+            local fine1 = Timers.create(2):finally(incControl)
+
+            check(data.control == 0)
+            fine1:start()
+            check(data.control == 0)
+            Timers.update(1)
+            check(data.control == 0)
+            Timers.update(1)
+            check(data.control == 1)
+            check(#Timers.list == 0)
+
+            -- reuse simple timer, cancellation (on-timer)
+            fine1:start()
+            check(data.control == 1)
+            Timers.update(1)
+            check(data.control == 1)
+            fine1:cancel()
+            check(data.control == 2)
+            check(#Timers.list == 0)
+
+            -- reuse simple timer, cancellation (global)
+            fine1:start()
+            check(data.control == 2)
+            Timers.update(1)
+            check(data.control == 2)
+            Timers.cancelAll()
+            check(data.control == 3)
+            check(#Timers.list == 0)
+        end
+
+        do
+            -- simple timer, using passed parameter
+            local fine2 = Timers.create(2):withData({ d = 0 }):finally(function(timer) timer:getData().d = timer:getData().d + 1 end)
+            check(fine2:getData().d == 0)
+            fine2:start()
+            check(fine2:getData().d == 0)
+            Timers.update(1)
+            check(fine2:getData().d == 0)
+            Timers.update(1)
+            check(fine2:getData().d == 1)
+            check(#Timers.list == 0)
+
+            -- reuse simple timer, cancellation (on-timer)
+            fine2:start()
+            check(fine2:getData().d == 1)
+            Timers.update(1)
+            check(fine2:getData().d == 1)
+            fine2:cancel()
+            check(fine2:getData().d == 2)
+            check(#Timers.list == 0)
+
+            -- reuse simple timer, cancellation (global)
+            fine2:start()
+            check(fine2:getData().d == 2)
+            Timers.update(1)
+            check(fine2:getData().d == 2)
+            Timers.cancelAll()
+            check(fine2:getData().d == 3)
+            check(#Timers.list == 0)
+        end
+
+        do
+            -- timer tree, with finally attached at creation timer
+            data.control = 0
+            local fine3 = Timers.create(2):thenWait(2):finally(incControl)
+
+            check(data.control == 0)
+            fine3:start()
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 1)
+            check(#Timers.list == 0)
+
+            -- cancellation (on-timer), root cancelled
+            fine3:start()
+            check(data.control == 1)
+            Timers.update(1)
+            check(data.control == 1)
+            fine3:cancel()
+            check(data.control == 2)
+            check(#Timers.list == 0)
+
+             -- cancellation (on-timer), leaf cancelled
+            fine3:start()
+            check(data.control == 2)
+            Timers.update(3)
+            check(data.control == 2)
+            fine3:cancel()
+            check(data.control == 3)
+            check(#Timers.list == 0)
+
+            -- cancellation (global)
+            fine3:start()
+            check(data.control == 3)
+            Timers.update(1)
+            check(data.control == 3)
+            Timers.cancelAll()
+            check(data.control == 4)
+            check(#Timers.list == 0)
+        end
+
+        do
+            -- leaf with finally, then attached to tree
+            data.control = 0
+            local leaf4 = Timers.create(2):finally(incControl)
+            local fine4 = Timers.create(2)
+            fine4:hang(leaf4)
+
+            check(data.control == 0)
+            fine4:start()
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 1)
+            check(#Timers.list == 0)
+
+            -- cancellation (on-timer), root cancelled
+            fine4:start()
+            check(data.control == 1)
+            Timers.update(1)
+            check(data.control == 1)
+            fine4:cancel()
+            check(data.control == 2)
+            check(#Timers.list == 0)
+
+             -- cancellation (on-timer), leaf cancelled
+            fine4:start()
+            check(data.control == 2)
+            Timers.update(3)
+            check(data.control == 2)
+            fine4:cancel()
+            check(data.control == 3)
+            check(#Timers.list == 0)
+
+            -- cancellation (global)
+            fine4:start()
+            check(data.control == 3)
+            Timers.update(1)
+            check(data.control == 3)
+            Timers.cancelAll()
+            check(data.control == 4)
+            check(#Timers.list == 0)
+        end
+
+        do
+            -- timer with loop and finally: only gets executed when explicitly cancelled
+            -- but not while it's looping
+            data.control = 0
+            -- first define finally, then loop
+            local fine5 = Timers.create(2):finally(incControl):thenRestart()
+
+            check(data.control == 0)
+            fine5:start()
+
+            -- several iterations, finally never called
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            Timers.update(1)
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            -- explicit cancel
+            fine5:cancel()
+            check(data.control == 1)
+
+            check(#Timers.list == 0)
+
+            -- first define loop, then finally
+            local fine6 = Timers.create(2):thenRestart():finally(incControl)
+
+            data.control = 0
+            fine6:start()
+
+            -- several iterations, finally never called
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            Timers.update(1)
+            check(data.control == 0)
+            Timers.update(2)
+            check(data.control == 0)
+            -- explicit cancel
+            fine6:cancel()
+            check(data.control == 1)
+
+            check(#Timers.list == 0)
+
+        end
+    end
 }
 
 
@@ -1056,5 +1261,5 @@ for i,test in ipairs(Tests) do
     io.write("Test "..i.."...")
     local passed,err = pcall(test)
     Timers.cancelAll() -- make sure that Timers is clean before starting a new test
-    print(passed and "OK" or "failed at "..err)
+    print(passed and "OK" or err and "failed at "..err or "")
 end
