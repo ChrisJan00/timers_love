@@ -1253,7 +1253,100 @@ Tests = {
             check(#Timers.list == 0)
 
         end
+    end,
+
+    function()
+        -- cancelling a tree from a branch while another branch is executing in parallel
+        local root = Timers.create()
+        root:thenWait(2) -- leaf A
+        root:thenWait(2):withUpdate(function(elapsed, timer) if elapsed >= 1 then timer:cancel() end end)
+
+        root:start()
+        check(#Timers.list == 1)
+        Timers.update(1)
+        check(#Timers.list == 2)
+        Timers.update(0.5)
+        check(#Timers.list == 2)
+        Timers.update(0.5)
+        check(#Timers.list == 0)
+
+    end,
+
+    function()
+        do
+            -- immediates
+            local count = 0
+
+            -- not immediate: leafs will be spawned in second iteration
+            local root_delayed = Timers.create()
+            local leaf = Timers.create(2):withUpdate(function() count = count + 1 end)
+
+            root_delayed:hang(leaf)
+            root_delayed:hang(leaf)
+
+            check(count == 0)
+            root_delayed:start()
+            check(count == 0)
+            Timers.update(1)
+            check(count == 0)
+            Timers.update(1)
+            check(count == 2)
+            Timers.cancelAll()
+
+            count = 0
+            local root_immediate = Timers.immediate()
+            root_immediate:hang(leaf)
+            root_immediate:hang(leaf)
+
+            check(count == 0)
+            root_immediate:start()
+            check(count == 0)
+            Timers.update(1)
+            check(count == 2)
+            Timers.update(1)
+            check(count == 4)
+
+            Timers.cancelAll()
+        end
+
+        do
+            -- prevent infinite loops
+
+            -- convenience code for breaking infinite loops
+            local executionLimit = 1e4
+            local executionCount = executionLimit
+            local hook = function()
+                -- clean hook
+                executionCount = executionCount - 1
+                if executionCount <= 0 then
+                    debug.sethook()
+                    local debugInfo = debug.getinfo(2,"Sl")
+                    print("timed out at "..debugInfo.source..":"..debugInfo.currentline)
+                    error()
+                end
+            end
+
+
+            -- regular empty timer -> should not iterate on update
+            local recur_zero = Timers.create():thenRestart()
+            recur_zero:start()
+
+            -- calling update: if there is an infinite loop, test will stop here
+            debug.sethook(hook, "l")
+            Timers.update(1)
+            debug.sethook()
+            recur_zero:cancel()
+
+            -- immediate timer -> should break the loop after a reasonable time
+            local recur_imm = Timers.immediate():thenRestart()
+            recur_imm:start()
+            debug.sethook(hook, "l")
+            Timers.update(1)
+            debug.sethook()
+            recur_imm:cancel()
+        end
     end
+
 }
 
 

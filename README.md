@@ -38,6 +38,10 @@ Timer methods
 
     timer = Timers.create(timeout)
         -- timeout is optional.  Specifies the time after which the timer expires. Default value is 0 (immediate expiration when started).
+    timer = Timers.immediate()
+        -- creates an "immediate" timer (marked by negative timeout).  Its callback will be resolved at the start of the update function, so that it
+        can spawn new timers that will update in the same iteration, as opposed to a timer with timeout 0, which will spawn timers that will
+        update in the following iteration.
 
 
 

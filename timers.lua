@@ -22,10 +22,10 @@
 
 
 
-local _rebuild_draw_list, _append_internal_data, _purge
+local _rebuild_draw_list, _append_internal_data, _purge, _launch_immediates
 local _timers_busy = false
 local _delayed_commands = {}
-local function _clone_self_orig(timer)
+local function _clone_self_new_orig(timer)
     local copy = Timers.create(timer.timeout)
     copy.init = timer.init
     copy.update = timer.update
@@ -182,12 +182,16 @@ local Timer_proto = {
 
         newTimer.origin = self.origin
         self:andThen(function(timer)
-            local launched = _clone_self_orig(newTimer)
+            local launched = _clone_self_new_orig(newTimer)
             launched.origin = timer.origin
             if launched.init then launched:init() end
-            table.insert(Timers.list, launched)
-            launched.origin._running = launched.origin._running + 1
-            _rebuild_draw_list()
+            if launched.timeout < 0 then
+                table.insert(Timers.immediateList, launched)
+            else
+                table.insert(Timers.list, launched)
+                launched.origin._running = launched.origin._running + 1
+                _rebuild_draw_list()
+            end
         end)
         return newTimer
     end,
@@ -209,9 +213,13 @@ local Timer_proto = {
         end
         self.origin.elapsed = 0
         if self.origin.init then self.origin:init() end
-        table.insert(Timers.list, self.origin)
-        self.origin._running = 1
-        _rebuild_draw_list()
+        if self.origin.timeout<0 then
+                table.insert(Timers.immediateList, self.origin)
+        else
+            table.insert(Timers.list, self.origin)
+            self.origin._running = 1
+            _rebuild_draw_list()
+        end
         return self
     end,
 
@@ -271,7 +279,7 @@ local Timer_proto = {
     end,
 
     fork = function(self)
-        return _clone_self_orig(self.origin)
+        return _clone_self_new_orig(self.origin)
     end,
 
     ref = function(self)
@@ -301,6 +309,28 @@ _purge = function()
     end
 end
 
+_launch_immediates = function()
+    -- default: 20 iterations of immediates launching other immediates
+    -- usually it should be all solved in a single iteration, but a loop might be there
+    -- in that case, I am breaking it and continue the loop on the next iteration
+    -- (although it would be better to hard-break here...)
+    local _iteration_count = 20
+    while #Timers.immediateList > 0 and _iteration_count > 0 do
+        _iteration_count = _iteration_count - 1
+        local list = Timers.immediateList
+        Timers.immediateList = {}
+
+        for _,t in ipairs(list) do
+            -- execute immediate
+            if t.callback then
+                t.callback(t)
+            elseif t.origin.final then
+                t.origin.final(t)
+            end
+        end
+    end
+end
+
 Timers = {
     -- create a new timer object
     create = function(timeout)
@@ -312,6 +342,10 @@ Timers = {
         newTimer.origin = newTimer
         newTimer.origin._running = 0
         return newTimer
+    end,
+
+    immediate = function()
+        return Timers.create(-1)
     end,
 
     -- general pause all
@@ -340,6 +374,7 @@ Timers = {
     update = function(dt)
         if Timers.paused then return end
         _timers_busy = true
+        _launch_immediates()
 
         local _dead_timer_indices = {}
         local _dirty = false
@@ -410,6 +445,7 @@ end
 local function _init()
     Timers.list = {}
     Timers.drawList = {}
+    Timers.immediateList = {}
     Timers.paused = false
     return Timers
 end
