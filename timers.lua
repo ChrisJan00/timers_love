@@ -333,7 +333,8 @@ end
 
 Timers = {
     -- create a new timer object
-    create = function(timeout)
+    create = function(timeout, orself)
+        if timeout == Timers then timeout = orself end
         local newTimer = {
             elapsed = 0 ,
             timeout = timeout or 0,
@@ -371,7 +372,8 @@ Timers = {
 
 
     -- general update (must be called from love.update)
-    update = function(dt)
+    update = function(dt, orself)
+        if dt == Timers then dt = orself end
         if Timers.paused then return end
         _timers_busy = true
         _launch_immediates()

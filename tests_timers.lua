@@ -1313,13 +1313,14 @@ Tests = {
             -- prevent infinite loops
 
             -- convenience code for breaking infinite loops
+            local currentHook_f,currentHook_m,currentHook_c = debug.gethook() -- luacov relies on hooks, we need this info to restore them
             local executionLimit = 1e4
             local executionCount = executionLimit
             local hook = function()
                 -- clean hook
                 executionCount = executionCount - 1
                 if executionCount <= 0 then
-                    debug.sethook()
+                    debug.sethook(currentHook_f,currentHook_m,currentHook_c)
                     local debugInfo = debug.getinfo(2,"Sl")
                     print("timed out at "..debugInfo.source..":"..debugInfo.currentline)
                     error()
@@ -1334,7 +1335,7 @@ Tests = {
             -- calling update: if there is an infinite loop, test will stop here
             debug.sethook(hook, "l")
             Timers.update(1)
-            debug.sethook()
+            debug.sethook(currentHook_f,currentHook_m,currentHook_c)
             recur_zero:cancel()
 
             -- immediate timer -> should break the loop after a reasonable time
@@ -1342,9 +1343,61 @@ Tests = {
             recur_imm:start()
             debug.sethook(hook, "l")
             Timers.update(1)
-            debug.sethook()
+            debug.sethook(currentHook_f,currentHook_m,currentHook_c)
             recur_imm:cancel()
         end
+
+        do
+            -- coverage: immediate with final
+            local test_val = 0
+            local final_immediate = Timers.immediate():finally(function() test_val = 1 end)
+
+            check(test_val == 0)
+            final_immediate:start()
+            check(test_val == 0)
+            Timers.update(1)
+            check(test_val == 1)
+        end
+
+    end,
+
+    function()
+        -- prepare is local to a timer, not to a tree
+        local count = 0
+        local inc = function() count = count + 1 end
+        local prepare_tree = Timers.create(2):prepare(inc):thenWait(1):prepare(inc)
+
+        check(count == 0)
+        prepare_tree:start()
+        check(count == 1)
+        Timers.update(1)
+        check(count == 1)
+        Timers.update(1)
+        check(count == 2)
+    end,
+
+    function()
+        -- coverage: appending finallys
+        local count = 0
+        local inc = function() count = count + 1 end
+
+        local two_finals_one_timer = Timers.create():finally(inc):finally(inc)
+
+        check(count == 0)
+        two_finals_one_timer:start()
+        check(count == 0)
+        Timers.update(1)
+        check(count == 2)
+
+        count = 0
+        local two_finals_tree = Timers:create():finally(inc):thenWait(1):finally(inc)
+        check(count == 0)
+        two_finals_tree:start()
+        check(count == 0)
+        Timers.update(1)
+        check(count == 0)
+        Timers.update(1)
+        check(count == 2)
     end
 
 }
