@@ -1569,6 +1569,38 @@ Tests = {
 
     end,
 
+    function()
+        -- independent instances of Timers
+        local TimersA = Timers.newInstance()
+        local TimersB = Timers.newInstance()
+
+        local count = 0
+        local timerA = TimersA.create(100):withUpdate(function() count = count + 1 end)
+        local timerB = TimersB.create(100):withUpdate(function() count = count + 10 end)
+
+        check(count == 0)
+        timerA:start()
+        timerB:start()
+        check(count == 0)
+        check(#TimersA.list == 1)
+        check(#TimersB.list == 1)
+        TimersA.update(1)
+        check(count == 1)
+        TimersB.update(1)
+        check(count == 11)
+        TimersA.update(1)
+        TimersB.update(1)
+        check(count == 22)
+        TimersA.cancelAll()
+        TimersA.update(1)
+        TimersB.update(1)
+        check(count == 32)
+
+        TimersA.cancelAll()
+        TimersB.cancelAll()
+
+    end
+
 }
 
 

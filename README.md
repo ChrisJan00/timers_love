@@ -167,6 +167,8 @@ Timer controller
         -- unpauses update function
     Timers.cancelAll()
         -- cancels all running timers
+    Timers_instance = Timers.newInstance()
+        -- creates a new, independent instance of Timers
 
 
 **Convenience function**
