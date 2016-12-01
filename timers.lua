@@ -135,6 +135,16 @@ local Timer_proto = {
         return self:hang(newTimer)
     end,
 
+    followWith = function(self, T)
+        local newRoot = Timers.create(T)
+        self:finally(function(cancelled)
+            if not cancelled then
+                newRoot:start()
+            end
+        end)
+        return newRoot
+    end,
+
     thenRestart = function(self)
         self:hang(self.origin)
         return self
@@ -386,10 +396,7 @@ Timers = {
                     t.origin._running = t.origin._running - 1
                     if t.callback then
                         t.callback(t)
-                    elseif t.origin.final then
-                        t.origin.final(false, t)
                     end
-                    -- table.remove(l, i)
                     table.insert(_dead_timer_indices, i)
                     _dirty = true
                 end
@@ -401,8 +408,17 @@ Timers = {
             end
         end
 
-        for i=1,#_dead_timer_indices do
-            table.remove(l, _dead_timer_indices[i])
+        if #_dead_timer_indices > 0 then
+            local _resolved_trees = {}
+            for i=1,#_dead_timer_indices do
+                local t = table.remove(l, _dead_timer_indices[i])
+                if t.origin.final
+                    and t.origin._running == 0
+                    and not _resolved_trees[t.origin] then
+                        _resolved_trees[t.origin] = true
+                        t.origin.final(false, t)
+                end
+            end
         end
 
         if _dirty then

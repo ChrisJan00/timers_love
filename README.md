@@ -74,7 +74,7 @@ The data object is attached to the tree and it's the same for all the timers of 
         -- callback will be called on update.  elapsed is the time elapsed since this individual timer started, in seconds.
     timer = timer:withDraw(function(timer), draworder)
         -- callback will be called on draw.  All timers with draw callbacks are sorted by ascending draworder value.  draworder is an optional parameter, with default value 0.
-    timer = timer:finallly(function(cancelled, timer))
+    timer = timer:finally(function(cancelled, timer))
         -- callback will be called when timer tree expires or is cancelled.  First parameter passed to the callback is a boolean explaining execution cause.
 
 
@@ -103,6 +103,8 @@ The parameters data and draworder are unique per tree, the other parameters are 
         -- appends a tree to another tree.  The difference with hang is that you can pass a leaf of the
         second tree to this function, and the full tree will be appended.  With hang, only the passed
         leaf (and its children) would be appended.
+    new_root = timer:followWith(timeout)
+        -- returns a new timer, belonging to a new separate tree that will be spawned when the first tree finishes.  Equivalent to timer:finally(new_root:start).  Takes cancellation into account.
 
 
 Once a new leaf has been created, you can still modify the parameters of the root or of the leaf calling the respective functions over them.  You can attach new leaves to any of those.

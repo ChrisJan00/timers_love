@@ -1256,6 +1256,37 @@ Tests = {
     end,
 
     function()
+        do
+            -- branch with callback and finally should execute both!
+            local count = 0
+            local inc = function() count = count + 1 end
+            local two_call = Timers.create():andThen(inc):finally(inc)
+
+            two_call:start()
+            check(count == 0)
+            Timers.update(1)
+            check(count == 2)
+        end
+
+        do
+            -- finally is called at the end of the tree, no matter where it is defined
+            local count = 0
+            local inc = function() count = count + 1 end
+            local final_call = Timers.create(1):finally(inc):thenWait(1):thenWait(1)
+
+            final_call:start()
+            check(count == 0)
+            Timers.update(1)
+            check(count == 0)
+            Timers.update(1)
+            check(count == 0)
+            Timers.update(1)
+            check(count == 1)
+        end
+
+    end,
+
+    function()
         -- cancelling a tree from a branch while another branch is executing in parallel
         local root = Timers.create()
         root:thenWait(2) -- leaf A
@@ -1401,6 +1432,64 @@ Tests = {
     end,
 
     function()
+
+        do
+            -- finally: assymetric trees
+            local asym_data = 0
+            local tree_asym = Timers.create(1)
+            -- short branch
+            tree_asym:thenWait(1):finally(function() asym_data = 1 end)
+            -- long branch
+            tree_asym:thenWait(2)
+
+            -- finally should be called after the whole tree is finished
+            tree_asym:start()
+            check(asym_data == 0)
+            check(#Timers.list == 1)
+
+            -- run root, spawn 2 branches
+            Timers.update(1)
+            check(asym_data == 0)
+            check(#Timers.list == 2)
+
+            -- finish one branch, finally not triggered yet
+            Timers.update(1)
+            check(asym_data == 0)
+            check(#Timers.list == 1)
+
+            -- finish second branch, trigger finally
+            Timers.update(1)
+            check(asym_data == 1)
+            check(#Timers.list == 0)
+        end
+
+        do
+            -- finally: symetric trees, finally should be called only once
+            local asym_data = 0
+            local tree_asym = Timers.create(1)
+            tree_asym:thenWait(1)
+            tree_asym:thenWait(1):finally(function() asym_data = asym_data+1 end)
+
+            -- finally should be called after the whole tree is finished
+            tree_asym:start()
+            check(asym_data == 0)
+            check(#Timers.list == 1)
+
+            -- run root, spawn 2 branches
+            Timers.update(1)
+            check(asym_data == 0)
+            check(#Timers.list == 2)
+
+            -- finish both branches, trigger finally but only once
+            Timers.update(1)
+            check(asym_data == 1)
+            check(#Timers.list == 0)
+
+        end
+
+    end,
+
+    function()
         -- finally: callback is aware of explicit cancellation
 
         local fControl = 0
@@ -1425,6 +1514,70 @@ Tests = {
         check(fControl == 0)
         Timers.cancelAll()
         check(fControl == 1)
+
+    end,
+
+
+    function()
+        -- followWith: append a tree to another tree
+        do
+            local done = 0
+            local tree_followed = Timers.immediate()
+            tree_followed:thenWait(2):followWith(1):andThen(function() done = 1 end)
+            tree_followed:thenWait(4)
+
+            tree_followed:start()
+
+            -- first, two branches of tree_followed are executing
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 2)
+
+            -- after 2 seconds, the first branch dies, but the second branch still runs
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 1)
+
+            -- at 3 seconds, the second branch is still there
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 1)
+
+            -- at 4 seconds, the second branch dies, which triggers the second tree (1 second root)
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 1)
+
+            -- 5 seconds: the last branch of the last tree finishes
+            Timers.update(1)
+            check(done == 1)
+            check(#Timers.list == 0)
+        end
+
+        do
+            -- follower trees are only spawned when launcher tries finish correctly (not when cancelled)
+            local done = 0
+            local tree_cancelled = Timers.immediate()
+            tree_cancelled:thenWait(2):followWith(1):thenWait(2):andThen(function() done = 1 end)
+
+            tree_cancelled:start()
+
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 1)
+
+            tree_cancelled:cancel()
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 0)
+
+            -- just to make sure that nothing is running
+            Timers.update(1)
+            check(done == 0)
+            check(#Timers.list == 0)
+
+        end
+
 
     end,
 
