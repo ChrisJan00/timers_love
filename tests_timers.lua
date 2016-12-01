@@ -1599,8 +1599,37 @@ Tests = {
         TimersA.cancelAll()
         TimersB.cancelAll()
 
-    end
+    end,
 
+    function()
+        -- you don't have to pass references to self in Timers' functions
+        -- but you do in methods of individual timers
+        -- yet, the Timers also accept this other form
+
+        local data = 0
+        Timers.setTimeout(function() data = 1 end, 1)
+        check(data == 0)
+        Timers.update(1)
+        check(data == 1)
+
+        Timers:setTimeout(function() data = 2 end, 1)
+        check(data == 1)
+        Timers:update(1)
+        check(data == 2)
+
+        local timer_noself = Timers.create(1):andThen(function() data = 3 end)
+        timer_noself:start()
+        check(data == 2)
+        Timers.update(1)
+        check(data == 3)
+
+        local timer_withself = Timers:create(1):andThen(function() data = 4 end)
+        timer_withself:start()
+        check(data == 3)
+        Timers.update(1)
+        check(data == 4)
+
+    end,
 }
 
 

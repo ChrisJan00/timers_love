@@ -451,7 +451,11 @@ local function _newInstance()
     }
 
     -- convenience function
-    Timers.setTimeout = function(func, time)
+    Timers.setTimeout = function(func, time, orself)
+        if func == Timers then
+            func = time
+            time = orself
+        end
         return Timers.create(time):andThen(func):start()
     end
 
