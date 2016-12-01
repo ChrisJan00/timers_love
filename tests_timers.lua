@@ -1089,7 +1089,7 @@ Tests = {
 
         do
             -- simple timer, using passed parameter
-            local fine2 = Timers.create(2):withData({ d = 0 }):finally(function(timer) timer:getData().d = timer:getData().d + 1 end)
+            local fine2 = Timers.create(2):withData({ d = 0 }):finally(function(cancelled, timer) timer:getData().d = timer:getData().d + 1 end)
             check(fine2:getData().d == 0)
             fine2:start()
             check(fine2:getData().d == 0)
@@ -1390,7 +1390,7 @@ Tests = {
         check(count == 2)
 
         count = 0
-        local two_finals_tree = Timers:create():finally(inc):thenWait(1):finally(inc)
+        local two_finals_tree = Timers.create():finally(inc):thenWait(1):finally(inc)
         check(count == 0)
         two_finals_tree:start()
         check(count == 0)
@@ -1398,7 +1398,35 @@ Tests = {
         check(count == 0)
         Timers.update(1)
         check(count == 2)
-    end
+    end,
+
+    function()
+        -- finally: callback is aware of explicit cancellation
+
+        local fControl = 0
+        local finalled_timer = Timers.create(1):finally(function(cancelled)
+                fControl = cancelled and 1 or 2
+            end)
+
+        check(fControl == 0)
+        finalled_timer:start()
+        check(fControl == 0)
+        Timers.update(1)
+        check(fControl == 2)
+
+        fControl = 0
+        finalled_timer:start()
+        check(fControl == 0)
+        finalled_timer:cancel()
+        check(fControl == 1)
+
+        fControl = 0
+        finalled_timer:start()
+        check(fControl == 0)
+        Timers.cancelAll()
+        check(fControl == 1)
+
+    end,
 
 }
 

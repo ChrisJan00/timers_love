@@ -114,14 +114,18 @@ local Timer_proto = {
     end,
 
     finally = function(self, fin)
-        if self.origin.final then
-            local func = self.origin.final
-            self.origin.final = function(timer)
-                func(timer)
-                fin(timer)
+        if fin ~= self.origin.final then
+            if self.origin.final then
+                local func = self.origin.final
+                self.origin.final = function(cancelled, timer)
+                    func(cancelled, timer)
+                    fin(cancelled, timer)
+                end
+            else
+                self.origin.final = function(cancelled,timer)
+                    fin(cancelled, timer)
+                end
             end
-        else
-            self.origin.final = fin
         end
         return self
     end,
@@ -132,26 +136,12 @@ local Timer_proto = {
     end,
 
     thenRestart = function(self)
-        -- avoid hanging final clause to itself
-        local final = self.origin.final
-        self.origin.final = nil
-
         self:hang(self.origin)
-
-        -- restore final clause
-        self.origin.final = final
         return self
     end,
 
     thenRestartLast = function(self)
-        -- avoid hanging final clause to itself
-        local final = self.origin.final
-        self.origin.final = nil
-
         self:hang(self)
-
-        -- restore final clause
-        self.origin.final = final
         return self
     end,
 
@@ -230,7 +220,7 @@ local Timer_proto = {
             return self
         end
         if self.origin.final then
-            self.origin.final(self)
+            self.origin.final(true, self)
         end
         _purge()
         _rebuild_draw_list()
@@ -325,7 +315,7 @@ _launch_immediates = function()
             if t.callback then
                 t.callback(t)
             elseif t.origin.final then
-                t.origin.final(t)
+                t.origin.final(false, t)
             end
         end
     end
@@ -364,7 +354,7 @@ Timers = {
         for i=1,#Timers.list do
             local t = Timers.list[i]
             t.origin._running = 0
-            if t.final then t.final(t) end
+            if t.final then t.final(true, t) end
         end
         Timers.list = {}
         _rebuild_draw_list()
@@ -397,7 +387,7 @@ Timers = {
                     if t.callback then
                         t.callback(t)
                     elseif t.origin.final then
-                        t.origin.final(t)
+                        t.origin.final(false, t)
                     end
                     -- table.remove(l, i)
                     table.insert(_dead_timer_indices, i)
