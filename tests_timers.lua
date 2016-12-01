@@ -699,89 +699,89 @@ Tests = {
 
     function()
         -- withData: should be merged across leaves
-        do
-            -- leaf accesses root's data
-            local root = Timers.create():withData({ a = 1 });
-            local leaf = Timers.create();
+        -- leaf accesses root's data
+        local root = Timers.create():withData({ a = 1 });
+        local leaf = Timers.create();
 
-            check(not leaf:getData());
-            check(root:getData().a == 1);
-            root:hang(leaf);
-            check(root:getData().a == 1);
-            check(leaf:getData().a == 1);
-        end
-        do
-            -- root gets leaf's data
-            local root = Timers.create();
-            local leaf = Timers.create():withData({ b = 2 });
-
-            check(not root:getData());
-            check(leaf:getData().b == 2);
-            root:hang(leaf);
-            check(root:getData().b == 2);
-            check(leaf:getData().b == 2);
-        end
-        do
-            -- root and leaf's data is merged
-            local root = Timers.create():withData({ a = 1 });
-            local leaf = Timers.create():withData({ b = 2 });
-
-            check(root:getData().a == 1);
-            check(not root:getData().b);
-            check(leaf:getData().b == 2);
-            check(not leaf:getData().a);
-
-            root:hang(leaf);
-
-            check(root:getData().a == 1);
-            check(root:getData().b == 2);
-            check(leaf:getData().a == 1);
-            check(leaf:getData().b == 2);
-        end
-        do
-            -- three-way merge
-            local root = Timers.create():withData({ a = 1 });
-            local leaf1 = Timers.create():withData({ b = 2 });
-            local leaf2 = Timers.create():withData({ c = 3 });
-
-            check(root:getData().a == 1);
-            check(not root:getData().b);
-            check(not root:getData().c);
-            check(leaf1:getData().b == 2);
-            check(not leaf1:getData().a);
-            check(not leaf1:getData().c);
-            check(leaf2:getData().c == 3);
-            check(not leaf2:getData().a);
-            check(not leaf2:getData().b);
-
-            root:hang(leaf1);
-            root:hang(leaf2);
-
-            check(root:getData().a == 1);
-            check(root:getData().b == 2);
-            check(root:getData().c == 3);
-            check(leaf1:getData().a == 1);
-            check(leaf1:getData().b == 2);
-            check(leaf1:getData().c == 3);
-            check(leaf2:getData().a == 1);
-            check(leaf2:getData().b == 2);
-            check(leaf2:getData().c == 3);
-
-        end
-        do
-            -- overwrite duplicated keys (should not be duplicated keys, but I am not checking it...)
-            local root = Timers.create():withData({ d = 1 });
-            local leaf = Timers.create():withData({ d = 2 });
-
-            check(root:getData().d == 1);
-            check(leaf:getData().d == 2);
-
-            root:hang(leaf);
-
-            check(root:getData().d == 2);
-            check(leaf:getData().d == 2);
-        end
+        check(not leaf:getData());
+        check(root:getData().a == 1);
+        root:hang(leaf);
+        check(root:getData().a == 1);
+        check(leaf:getData().a == 1);
     end,
+
+    function()
+        -- root gets leaf's data
+        local root = Timers.create();
+        local leaf = Timers.create():withData({ b = 2 });
+
+        check(not root:getData());
+        check(leaf:getData().b == 2);
+        root:hang(leaf);
+        check(root:getData().b == 2);
+        check(leaf:getData().b == 2);
+    end,
+    function()
+        -- root and leaf's data is merged
+        local root = Timers.create():withData({ a = 1 });
+        local leaf = Timers.create():withData({ b = 2 });
+
+        check(root:getData().a == 1);
+        check(not root:getData().b);
+        check(leaf:getData().b == 2);
+        check(not leaf:getData().a);
+
+        root:hang(leaf);
+
+        check(root:getData().a == 1);
+        check(root:getData().b == 2);
+        check(leaf:getData().a == 1);
+        check(leaf:getData().b == 2);
+    end,
+    function()
+        -- three-way merge
+        local root = Timers.create():withData({ a = 1 });
+        local leaf1 = Timers.create():withData({ b = 2 });
+        local leaf2 = Timers.create():withData({ c = 3 });
+
+        check(root:getData().a == 1);
+        check(not root:getData().b);
+        check(not root:getData().c);
+        check(leaf1:getData().b == 2);
+        check(not leaf1:getData().a);
+        check(not leaf1:getData().c);
+        check(leaf2:getData().c == 3);
+        check(not leaf2:getData().a);
+        check(not leaf2:getData().b);
+
+        root:hang(leaf1);
+        root:hang(leaf2);
+
+        check(root:getData().a == 1);
+        check(root:getData().b == 2);
+        check(root:getData().c == 3);
+        check(leaf1:getData().a == 1);
+        check(leaf1:getData().b == 2);
+        check(leaf1:getData().c == 3);
+        check(leaf2:getData().a == 1);
+        check(leaf2:getData().b == 2);
+        check(leaf2:getData().c == 3);
+
+    end,
+    function()
+        -- overwrite duplicated keys (should not be duplicated keys, but I am not checking it...)
+        local root = Timers.create():withData({ d = 1 });
+        local leaf = Timers.create():withData({ d = 2 });
+
+        check(root:getData().d == 1);
+        check(leaf:getData().d == 2);
+
+        root:hang(leaf);
+
+        check(root:getData().d == 2);
+        check(leaf:getData().d == 2);
+    end,
+
     function()
         -- more coverage
         Timers.cancelAll()
@@ -976,35 +976,35 @@ Tests = {
 
     function()
 
-    local data = 0
-    local spawner = Timers.create(1)
-    local first_branch = Timers.create(1):thenWait(1):withDraw(function() data = data + 1 end)
-    local second_branch = Timers.create(1):thenWait(1):withDraw(function() data = data + 2 end)
+        local data = 0
+        local spawner = Timers.create(1)
+        local first_branch = Timers.create(1):thenWait(1):withDraw(function() data = data + 1 end)
+        local second_branch = Timers.create(1):thenWait(1):withDraw(function() data = data + 2 end)
 
-    spawner
-        :hang(first_branch:ref())
-        :hang(second_branch:ref())
+        spawner
+            :hang(first_branch:ref())
+            :hang(second_branch:ref())
 
-    spawner:start()
-    check(data == 0)
+        spawner:start()
+        check(data == 0)
 
-    Timers.update(1)
-    Timers.draw()
-    check(data == 0)
+        Timers.update(1)
+        Timers.draw()
+        check(data == 0)
 
-    Timers.update(1)
-    Timers.draw()
-    check(data == 1)
+        Timers.update(1)
+        Timers.draw()
+        check(data == 1)
 
-    Timers.update(1)
-    Timers.draw()
-    check(data == 3)
+        Timers.update(1)
+        Timers.draw()
+        check(data == 3)
 
-    Timers.update(1)
-    Timers.draw()
-    check(data == 3)
+        Timers.update(1)
+        Timers.draw()
+        check(data == 3)
 
-    check(#Timers.list == 0)
+        check(#Timers.list == 0)
 
     end,
 
@@ -1054,236 +1054,235 @@ Tests = {
         -- testing "finally"
         local data = { control = 0 }
         local function incControl() data.control = data.control + 1 end
+        -- simple timer, expiration
+        local fine1 = Timers.create(2):finally(incControl)
 
-        do
-            -- simple timer, expiration
-            local fine1 = Timers.create(2):finally(incControl)
+        check(data.control == 0)
+        fine1:start()
+        check(data.control == 0)
+        Timers.update(1)
+        check(data.control == 0)
+        Timers.update(1)
+        check(data.control == 1)
+        check(#Timers.list == 0)
 
-            check(data.control == 0)
-            fine1:start()
-            check(data.control == 0)
-            Timers.update(1)
-            check(data.control == 0)
-            Timers.update(1)
-            check(data.control == 1)
-            check(#Timers.list == 0)
+        -- reuse simple timer, cancellation (on-timer)
+        fine1:start()
+        check(data.control == 1)
+        Timers.update(1)
+        check(data.control == 1)
+        fine1:cancel()
+        check(data.control == 2)
+        check(#Timers.list == 0)
 
-            -- reuse simple timer, cancellation (on-timer)
-            fine1:start()
-            check(data.control == 1)
-            Timers.update(1)
-            check(data.control == 1)
-            fine1:cancel()
-            check(data.control == 2)
-            check(#Timers.list == 0)
-
-            -- reuse simple timer, cancellation (global)
-            fine1:start()
-            check(data.control == 2)
-            Timers.update(1)
-            check(data.control == 2)
-            Timers.cancelAll()
-            check(data.control == 3)
-            check(#Timers.list == 0)
-        end
-
-        do
-            -- simple timer, using passed parameter
-            local fine2 = Timers.create(2):withData({ d = 0 }):finally(function(cancelled, timer) timer:getData().d = timer:getData().d + 1 end)
-            check(fine2:getData().d == 0)
-            fine2:start()
-            check(fine2:getData().d == 0)
-            Timers.update(1)
-            check(fine2:getData().d == 0)
-            Timers.update(1)
-            check(fine2:getData().d == 1)
-            check(#Timers.list == 0)
-
-            -- reuse simple timer, cancellation (on-timer)
-            fine2:start()
-            check(fine2:getData().d == 1)
-            Timers.update(1)
-            check(fine2:getData().d == 1)
-            fine2:cancel()
-            check(fine2:getData().d == 2)
-            check(#Timers.list == 0)
-
-            -- reuse simple timer, cancellation (global)
-            fine2:start()
-            check(fine2:getData().d == 2)
-            Timers.update(1)
-            check(fine2:getData().d == 2)
-            Timers.cancelAll()
-            check(fine2:getData().d == 3)
-            check(#Timers.list == 0)
-        end
-
-        do
-            -- timer tree, with finally attached at creation timer
-            data.control = 0
-            local fine3 = Timers.create(2):thenWait(2):finally(incControl)
-
-            check(data.control == 0)
-            fine3:start()
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 1)
-            check(#Timers.list == 0)
-
-            -- cancellation (on-timer), root cancelled
-            fine3:start()
-            check(data.control == 1)
-            Timers.update(1)
-            check(data.control == 1)
-            fine3:cancel()
-            check(data.control == 2)
-            check(#Timers.list == 0)
-
-             -- cancellation (on-timer), leaf cancelled
-            fine3:start()
-            check(data.control == 2)
-            Timers.update(3)
-            check(data.control == 2)
-            fine3:cancel()
-            check(data.control == 3)
-            check(#Timers.list == 0)
-
-            -- cancellation (global)
-            fine3:start()
-            check(data.control == 3)
-            Timers.update(1)
-            check(data.control == 3)
-            Timers.cancelAll()
-            check(data.control == 4)
-            check(#Timers.list == 0)
-        end
-
-        do
-            -- leaf with finally, then attached to tree
-            data.control = 0
-            local leaf4 = Timers.create(2):finally(incControl)
-            local fine4 = Timers.create(2)
-            fine4:hang(leaf4)
-
-            check(data.control == 0)
-            fine4:start()
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 1)
-            check(#Timers.list == 0)
-
-            -- cancellation (on-timer), root cancelled
-            fine4:start()
-            check(data.control == 1)
-            Timers.update(1)
-            check(data.control == 1)
-            fine4:cancel()
-            check(data.control == 2)
-            check(#Timers.list == 0)
-
-             -- cancellation (on-timer), leaf cancelled
-            fine4:start()
-            check(data.control == 2)
-            Timers.update(3)
-            check(data.control == 2)
-            fine4:cancel()
-            check(data.control == 3)
-            check(#Timers.list == 0)
-
-            -- cancellation (global)
-            fine4:start()
-            check(data.control == 3)
-            Timers.update(1)
-            check(data.control == 3)
-            Timers.cancelAll()
-            check(data.control == 4)
-            check(#Timers.list == 0)
-        end
-
-        do
-            -- timer with loop and finally: only gets executed when explicitly cancelled
-            -- but not while it's looping
-            data.control = 0
-            -- first define finally, then loop
-            local fine5 = Timers.create(2):finally(incControl):thenRestart()
-
-            check(data.control == 0)
-            fine5:start()
-
-            -- several iterations, finally never called
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            Timers.update(1)
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            -- explicit cancel
-            fine5:cancel()
-            check(data.control == 1)
-
-            check(#Timers.list == 0)
-
-            -- first define loop, then finally
-            local fine6 = Timers.create(2):thenRestart():finally(incControl)
-
-            data.control = 0
-            fine6:start()
-
-            -- several iterations, finally never called
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            Timers.update(1)
-            check(data.control == 0)
-            Timers.update(2)
-            check(data.control == 0)
-            -- explicit cancel
-            fine6:cancel()
-            check(data.control == 1)
-
-            check(#Timers.list == 0)
-
-        end
+        -- reuse simple timer, cancellation (global)
+        fine1:start()
+        check(data.control == 2)
+        Timers.update(1)
+        check(data.control == 2)
+        Timers.cancelAll()
+        check(data.control == 3)
+        check(#Timers.list == 0)
     end,
 
     function()
-        do
-            -- branch with callback and finally should execute both!
-            local count = 0
-            local inc = function() count = count + 1 end
-            local two_call = Timers.create():andThen(inc):finally(inc)
+        -- simple timer, using passed parameter
+        local data = { control = 0 }
+        local function incControl() data.control = data.control + 1 end
+        local fine2 = Timers.create(2):withData({ d = 0 }):finally(function(cancelled, timer) timer:getData().d = timer:getData().d + 1 end)
+        check(fine2:getData().d == 0)
+        fine2:start()
+        check(fine2:getData().d == 0)
+        Timers.update(1)
+        check(fine2:getData().d == 0)
+        Timers.update(1)
+        check(fine2:getData().d == 1)
+        check(#Timers.list == 0)
 
-            two_call:start()
-            check(count == 0)
-            Timers.update(1)
-            check(count == 2)
-        end
+        -- reuse simple timer, cancellation (on-timer)
+        fine2:start()
+        check(fine2:getData().d == 1)
+        Timers.update(1)
+        check(fine2:getData().d == 1)
+        fine2:cancel()
+        check(fine2:getData().d == 2)
+        check(#Timers.list == 0)
 
-        do
-            -- finally is called at the end of the tree, no matter where it is defined
-            local count = 0
-            local inc = function() count = count + 1 end
-            local final_call = Timers.create(1):finally(inc):thenWait(1):thenWait(1)
+        -- reuse simple timer, cancellation (global)
+        fine2:start()
+        check(fine2:getData().d == 2)
+        Timers.update(1)
+        check(fine2:getData().d == 2)
+        Timers.cancelAll()
+        check(fine2:getData().d == 3)
+        check(#Timers.list == 0)
+    end,
 
-            final_call:start()
-            check(count == 0)
-            Timers.update(1)
-            check(count == 0)
-            Timers.update(1)
-            check(count == 0)
-            Timers.update(1)
-            check(count == 1)
-        end
+    function()
+    local data = { control = 0 }
+    local function incControl() data.control = data.control + 1 end
 
+        -- timer tree, with finally attached at creation timer
+        local fine3 = Timers.create(2):thenWait(2):finally(incControl)
+
+        check(data.control == 0)
+        fine3:start()
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 1)
+        check(#Timers.list == 0)
+
+        -- cancellation (on-timer), root cancelled
+        fine3:start()
+        check(data.control == 1)
+        Timers.update(1)
+        check(data.control == 1)
+        fine3:cancel()
+        check(data.control == 2)
+        check(#Timers.list == 0)
+
+         -- cancellation (on-timer), leaf cancelled
+        fine3:start()
+        check(data.control == 2)
+        Timers.update(3)
+        check(data.control == 2)
+        fine3:cancel()
+        check(data.control == 3)
+        check(#Timers.list == 0)
+
+        -- cancellation (global)
+        fine3:start()
+        check(data.control == 3)
+        Timers.update(1)
+        check(data.control == 3)
+        Timers.cancelAll()
+        check(data.control == 4)
+        check(#Timers.list == 0)
+    end,
+
+    function()
+        -- leaf with finally, then attached to tree
+        local data = { control = 0 }
+        local function incControl() data.control = data.control + 1 end
+        local leaf4 = Timers.create(2):finally(incControl)
+        local fine4 = Timers.create(2)
+        fine4:hang(leaf4)
+
+        check(data.control == 0)
+        fine4:start()
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 1)
+        check(#Timers.list == 0)
+
+        -- cancellation (on-timer), root cancelled
+        fine4:start()
+        check(data.control == 1)
+        Timers.update(1)
+        check(data.control == 1)
+        fine4:cancel()
+        check(data.control == 2)
+        check(#Timers.list == 0)
+
+         -- cancellation (on-timer), leaf cancelled
+        fine4:start()
+        check(data.control == 2)
+        Timers.update(3)
+        check(data.control == 2)
+        fine4:cancel()
+        check(data.control == 3)
+        check(#Timers.list == 0)
+
+        -- cancellation (global)
+        fine4:start()
+        check(data.control == 3)
+        Timers.update(1)
+        check(data.control == 3)
+        Timers.cancelAll()
+        check(data.control == 4)
+        check(#Timers.list == 0)
+    end,
+
+   function()
+        -- timer with loop and finally: only gets executed when explicitly cancelled
+        -- but not while it's looping
+        local data = { control = 0 }
+        local function incControl() data.control = data.control + 1 end
+        -- first define finally, then loop
+        local fine5 = Timers.create(2):finally(incControl):thenRestart()
+
+        check(data.control == 0)
+        fine5:start()
+
+        -- several iterations, finally never called
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        Timers.update(1)
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        -- explicit cancel
+        fine5:cancel()
+        check(data.control == 1)
+
+        check(#Timers.list == 0)
+
+        -- first define loop, then finally
+        local fine6 = Timers.create(2):thenRestart():finally(incControl)
+
+        data.control = 0
+        fine6:start()
+
+        -- several iterations, finally never called
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        Timers.update(1)
+        check(data.control == 0)
+        Timers.update(2)
+        check(data.control == 0)
+        -- explicit cancel
+        fine6:cancel()
+        check(data.control == 1)
+
+        check(#Timers.list == 0)
+    end,
+
+    function()
+        -- branch with callback and finally should execute both!
+        local count = 0
+        local inc = function() count = count + 1 end
+        local two_call = Timers.create():andThen(inc):finally(inc)
+
+        two_call:start()
+        check(count == 0)
+        Timers.update(1)
+        check(count == 2)
+    end,
+
+    function()
+        -- finally is called at the end of the tree, no matter where it is defined
+        local count = 0
+        local inc = function() count = count + 1 end
+        local final_call = Timers.create(1):finally(inc):thenWait(1):thenWait(1)
+
+        final_call:start()
+        check(count == 0)
+        Timers.update(1)
+        check(count == 0)
+        Timers.update(1)
+        check(count == 0)
+        Timers.update(1)
+        check(count == 1)
     end,
 
     function()
@@ -1304,92 +1303,89 @@ Tests = {
     end,
 
     function()
-        do
-            -- immediates
-            local count = 0
+        -- immediates
+        local count = 0
 
-            -- not immediate: leafs will be spawned in second iteration
-            local root_delayed = Timers.create()
-            local leaf = Timers.create(2):withUpdate(function() count = count + 1 end)
+        -- not immediate: leafs will be spawned in second iteration
+        local root_delayed = Timers.create()
+        local leaf = Timers.create(2):withUpdate(function() count = count + 1 end)
 
-            root_delayed:hang(leaf)
-            root_delayed:hang(leaf)
+        root_delayed:hang(leaf)
+        root_delayed:hang(leaf)
 
-            check(count == 0)
-            root_delayed:start()
-            check(count == 0)
-            Timers.update(1)
-            check(count == 0)
-            Timers.update(1)
-            check(count == 2)
-            Timers.cancelAll()
+        check(count == 0)
+        root_delayed:start()
+        check(count == 0)
+        Timers.update(1)
+        check(count == 0)
+        Timers.update(1)
+        check(count == 2)
+        Timers.cancelAll()
 
-            count = 0
-            local root_immediate = Timers.immediate()
-            root_immediate:hang(leaf)
-            root_immediate:hang(leaf)
+        count = 0
+        local root_immediate = Timers.immediate()
+        root_immediate:hang(leaf)
+        root_immediate:hang(leaf)
 
-            check(count == 0)
-            root_immediate:start()
-            check(count == 0)
-            Timers.update(1)
-            check(count == 2)
-            Timers.update(1)
-            check(count == 4)
+        check(count == 0)
+        root_immediate:start()
+        check(count == 0)
+        Timers.update(1)
+        check(count == 2)
+        Timers.update(1)
+        check(count == 4)
 
-            Timers.cancelAll()
-        end
+        Timers.cancelAll()
+    end,
 
-        do
-            -- prevent infinite loops
+    function()
+        -- prevent infinite loops
 
-            -- convenience code for breaking infinite loops
-            local currentHook_f,currentHook_m,currentHook_c = debug.gethook() -- luacov relies on hooks, we need this info to restore them
-            local executionLimit = 1e4
-            local executionCount = executionLimit
-            local hook = function()
-                -- clean hook
-                executionCount = executionCount - 1
-                if executionCount <= 0 then
-                    debug.sethook(currentHook_f,currentHook_m,currentHook_c)
-                    local debugInfo = debug.getinfo(2,"Sl")
-                    print("timed out at "..debugInfo.source..":"..debugInfo.currentline)
-                    error()
-                end
+        -- convenience code for breaking infinite loops
+        local currentHook_f,currentHook_m,currentHook_c = debug.gethook() -- luacov relies on hooks, we need this info to restore them
+        local executionLimit = 1e4
+        local executionCount = executionLimit
+        local hook = function()
+            -- clean hook
+            executionCount = executionCount - 1
+            if executionCount <= 0 then
+                debug.sethook(currentHook_f,currentHook_m,currentHook_c)
+                local debugInfo = debug.getinfo(2,"Sl")
+                print("timed out at "..debugInfo.source..":"..debugInfo.currentline)
+                error()
             end
-
-
-            -- regular empty timer -> should not iterate on update
-            local recur_zero = Timers.create():thenRestart()
-            recur_zero:start()
-
-            -- calling update: if there is an infinite loop, test will stop here
-            debug.sethook(hook, "l")
-            Timers.update(1)
-            debug.sethook(currentHook_f,currentHook_m,currentHook_c)
-            recur_zero:cancel()
-
-            -- immediate timer -> should break the loop after a reasonable time
-            local recur_imm = Timers.immediate():thenRestart()
-            recur_imm:start()
-            debug.sethook(hook, "l")
-            Timers.update(1)
-            debug.sethook(currentHook_f,currentHook_m,currentHook_c)
-            recur_imm:cancel()
         end
 
-        do
-            -- coverage: immediate with final
-            local test_val = 0
-            local final_immediate = Timers.immediate():finally(function() test_val = 1 end)
 
-            check(test_val == 0)
-            final_immediate:start()
-            check(test_val == 0)
-            Timers.update(1)
-            check(test_val == 1)
-        end
+        -- regular empty timer -> should not iterate on update
+        local recur_zero = Timers.create():thenRestart()
+        recur_zero:start()
 
+        -- calling update: if there is an infinite loop, test will stop here
+        debug.sethook(hook, "l")
+        Timers.update(1)
+        debug.sethook(currentHook_f,currentHook_m,currentHook_c)
+        recur_zero:cancel()
+
+        -- immediate timer -> should break the loop after a reasonable time
+        local recur_imm = Timers.immediate():thenRestart()
+        recur_imm:start()
+        debug.sethook(hook, "l")
+        Timers.update(1)
+        debug.sethook(currentHook_f,currentHook_m,currentHook_c)
+        recur_imm:cancel()
+    end,
+
+    function()
+        -- coverage: immediate with final
+        local test_val = 0
+        local final_immediate = Timers.immediate():finally(function() test_val = 1 end)
+
+        check(test_val == 0)
+        final_immediate:start()
+        check(test_val == 0)
+        Timers.update(1)
+        check(test_val == 1)
     end,
 
     function()
@@ -1432,60 +1428,56 @@ Tests = {
     end,
 
     function()
+        -- finally: assymetric trees
+        local asym_data = 0
+        local tree_asym = Timers.create(1)
+        -- short branch
+        tree_asym:thenWait(1):finally(function() asym_data = 1 end)
+        -- long branch
+        tree_asym:thenWait(2)
 
-        do
-            -- finally: assymetric trees
-            local asym_data = 0
-            local tree_asym = Timers.create(1)
-            -- short branch
-            tree_asym:thenWait(1):finally(function() asym_data = 1 end)
-            -- long branch
-            tree_asym:thenWait(2)
+        -- finally should be called after the whole tree is finished
+        tree_asym:start()
+        check(asym_data == 0)
+        check(#Timers.list == 1)
 
-            -- finally should be called after the whole tree is finished
-            tree_asym:start()
-            check(asym_data == 0)
-            check(#Timers.list == 1)
+        -- run root, spawn 2 branches
+        Timers.update(1)
+        check(asym_data == 0)
+        check(#Timers.list == 2)
 
-            -- run root, spawn 2 branches
-            Timers.update(1)
-            check(asym_data == 0)
-            check(#Timers.list == 2)
+        -- finish one branch, finally not triggered yet
+        Timers.update(1)
+        check(asym_data == 0)
+        check(#Timers.list == 1)
 
-            -- finish one branch, finally not triggered yet
-            Timers.update(1)
-            check(asym_data == 0)
-            check(#Timers.list == 1)
+        -- finish second branch, trigger finally
+        Timers.update(1)
+        check(asym_data == 1)
+        check(#Timers.list == 0)
+    end,
 
-            -- finish second branch, trigger finally
-            Timers.update(1)
-            check(asym_data == 1)
-            check(#Timers.list == 0)
-        end
+    function()
+        -- finally: symetric trees, finally should be called only once
+        local asym_data = 0
+        local tree_asym = Timers.create(1)
+        tree_asym:thenWait(1)
+        tree_asym:thenWait(1):finally(function() asym_data = asym_data+1 end)
 
-        do
-            -- finally: symetric trees, finally should be called only once
-            local asym_data = 0
-            local tree_asym = Timers.create(1)
-            tree_asym:thenWait(1)
-            tree_asym:thenWait(1):finally(function() asym_data = asym_data+1 end)
+        -- finally should be called after the whole tree is finished
+        tree_asym:start()
+        check(asym_data == 0)
+        check(#Timers.list == 1)
 
-            -- finally should be called after the whole tree is finished
-            tree_asym:start()
-            check(asym_data == 0)
-            check(#Timers.list == 1)
+        -- run root, spawn 2 branches
+        Timers.update(1)
+        check(asym_data == 0)
+        check(#Timers.list == 2)
 
-            -- run root, spawn 2 branches
-            Timers.update(1)
-            check(asym_data == 0)
-            check(#Timers.list == 2)
-
-            -- finish both branches, trigger finally but only once
-            Timers.update(1)
-            check(asym_data == 1)
-            check(#Timers.list == 0)
-
-        end
+        -- finish both branches, trigger finally but only once
+        Timers.update(1)
+        check(asym_data == 1)
+        check(#Timers.list == 0)
 
     end,
 
@@ -1520,64 +1512,60 @@ Tests = {
 
     function()
         -- followWith: append a tree to another tree
-        do
-            local done = 0
-            local tree_followed = Timers.immediate()
-            tree_followed:thenWait(2):followWith(1):andThen(function() done = 1 end)
-            tree_followed:thenWait(4)
+        local done = 0
+        local tree_followed = Timers.immediate()
+        tree_followed:thenWait(2):followWith(1):andThen(function() done = 1 end)
+        tree_followed:thenWait(4)
 
-            tree_followed:start()
+        tree_followed:start()
 
-            -- first, two branches of tree_followed are executing
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 2)
+        -- first, two branches of tree_followed are executing
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 2)
 
-            -- after 2 seconds, the first branch dies, but the second branch still runs
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 1)
+        -- after 2 seconds, the first branch dies, but the second branch still runs
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 1)
 
-            -- at 3 seconds, the second branch is still there
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 1)
+        -- at 3 seconds, the second branch is still there
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 1)
 
-            -- at 4 seconds, the second branch dies, which triggers the second tree (1 second root)
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 1)
+        -- at 4 seconds, the second branch dies, which triggers the second tree (1 second root)
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 1)
 
-            -- 5 seconds: the last branch of the last tree finishes
-            Timers.update(1)
-            check(done == 1)
-            check(#Timers.list == 0)
-        end
+        -- 5 seconds: the last branch of the last tree finishes
+        Timers.update(1)
+        check(done == 1)
+        check(#Timers.list == 0)
+    end,
 
-        do
-            -- follower trees are only spawned when launcher tries finish correctly (not when cancelled)
-            local done = 0
-            local tree_cancelled = Timers.immediate()
-            tree_cancelled:thenWait(2):followWith(1):thenWait(2):andThen(function() done = 1 end)
+    function()
+        -- follower trees are only spawned when launcher tries finish correctly (not when cancelled)
+        local done = 0
+        local tree_cancelled = Timers.immediate()
+        tree_cancelled:thenWait(2):followWith(1):thenWait(2):andThen(function() done = 1 end)
 
-            tree_cancelled:start()
+        tree_cancelled:start()
 
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 1)
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 1)
 
-            tree_cancelled:cancel()
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 0)
+        tree_cancelled:cancel()
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 0)
 
-            -- just to make sure that nothing is running
-            Timers.update(1)
-            check(done == 0)
-            check(#Timers.list == 0)
-
-        end
-
+        -- just to make sure that nothing is running
+        Timers.update(1)
+        check(done == 0)
+        check(#Timers.list == 0)
 
     end,
 
