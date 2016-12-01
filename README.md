@@ -105,6 +105,8 @@ The parameters data and draworder are unique per tree, the other parameters are 
         leaf (and its children) would be appended.
     new_root = timer:followWith(timeout)
         -- returns a new timer, belonging to a new separate tree that will be spawned when the first tree finishes.  Equivalent to timer:finally(new_root:start).  Takes cancellation into account.
+    obs_timer = obs_timer:observe(tree)
+        -- returns itself, make this timer lifetime match the lifetime of the observed tree.
 
 
 Once a new leaf has been created, you can still modify the parameters of the root or of the leaf calling the respective functions over them.  You can attach new leaves to any of those.

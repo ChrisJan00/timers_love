@@ -147,6 +147,13 @@ local function _newInstance()
             return newRoot
         end,
 
+        observe = function(self, tree)
+            if tree ~= self.origin then
+                self.observed = tree and tree.origin or nil
+            end
+            return self
+        end,
+
         thenRestart = function(self)
             self:hang(self.origin)
             return self
@@ -394,6 +401,11 @@ local function _newInstance()
                     t.elapsed = t.elapsed + dt
                     if t.update then
                         t.update(t.elapsed, t)
+                    end
+
+                    if t.observed then
+                        -- artificially inflate timer's life
+                        t.timeout = t.elapsed + t.observed.origin._running
                     end
 
                     if t.elapsed >= t.timeout then

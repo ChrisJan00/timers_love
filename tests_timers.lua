@@ -1630,6 +1630,54 @@ Tests = {
         check(data == 4)
 
     end,
+
+    function()
+        -- observe: link a timer to a tree (when it does not belong to that tree)
+        -- the timer will run as long as the tree is running
+
+        local count = 0
+        local watched_tree = Timers.create(1):thenWait(1):thenWait(1)
+        local observer = Timers.create():observe(watched_tree):withUpdate(function()
+            count = count + 2
+            end)
+
+        watched_tree:start()
+        observer:start()
+
+        check(count == 0)
+
+        Timers.update(1)
+        check(count == 2)
+        check(observer.elapsed == 1)
+
+        Timers.update(1)
+        check(count == 4)
+        check(observer.elapsed == 2)
+
+        Timers.update(1)
+        check(count == 6)
+        check(observer.elapsed == 3)
+
+        Timers.update(1)
+        check(count == 6)
+        check(#Timers.list == 0)
+        check(observer.elapsed == 3)
+    end,
+
+    function()
+        -- prevent animation to observe itself
+        local self_observe = Timers.create()
+
+        self_observe:observe(self_observe)
+        check(self_observe.observed == nil)
+
+        self_observe:observe(Timers.create())
+        check(self_observe.observed ~= nil)
+
+        self_observe:observe()
+        check(self_observe.observed == nil)
+    end
+
 }
 
 
