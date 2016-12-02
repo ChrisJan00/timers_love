@@ -184,12 +184,17 @@ local function _newInstance()
         end,
 
         loopNTimes = function(self, times)
-            local _loopCount = times
-            self:andThen(function(timer)
-                _loopCount = _loopCount - 1
-                if _loopCount > 0 then self:start() end
-                end)
-            return self
+            if times>1 then
+                local iteration_proto = _clone_callbacks(_bubble_origin(self))
+                local tail = self
+                -- the first iteration is already there
+                for i=1,times-1 do
+                    tail = tail:hang(_clone_callbacks(iteration_proto))
+                end
+                return tail
+            else
+                return self
+            end
         end,
 
         hang = function(self, newTimer)
