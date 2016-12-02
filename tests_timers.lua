@@ -23,14 +23,6 @@
 
 require 'timers'
 
-local function check(condition)
-    if not condition then
-        local debugInfo = debug.getinfo(2,"Sl")
-        print("failed check at "..debugInfo.source..":"..debugInfo.currentline)
-        error(false)
-    end
-end
-
 local function compare(value, expected)
     if value ~= expected then
         local debugInfo = debug.getinfo(2,"Sl")
@@ -42,72 +34,72 @@ end
 Tests = {
     function()
         -- basic functions of timers
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
         -- empty update without crash
         Timers.update(1)
 
         -- create 1 timer
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
         local timer1 = Timers.create(1)
 
         -- not launched
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
         -- launched
         timer1:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
 
         -- half step
         Timers.update(0.5)
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
 
         -- full step: timer removed
         Timers.update(0.5)
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
     end,
 
     function()
         -- pause/continue/cancel in timers
         local timer2 = Timers.create(1):start()
 
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.update(0.5)
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.pauseAll()
         Timers.update(2)
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.continueAll()
         Timers.update(2)
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
         timer2:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.cancelAll()
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
     end,
 
     function()
         -- pause/continue/cancel single timer
         local timer3 = Timers.create(1):start()
 
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.update(0.5)
-        check(#Timers.list == 1)
-        check(not timer3:isPaused())
+        compare(#Timers.list, 1)
+        compare(timer3:isPaused(), false)
         timer3:pause()
-        check(timer3:isPaused())
+        compare(timer3:isPaused(), true)
         Timers.update(2)
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         timer3:continue()
-        check(not timer3:isPaused())
+        compare(timer3:isPaused(), false)
         Timers.update(2)
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
         timer3:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         timer3:cancel()
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -123,20 +115,20 @@ Tests = {
         :withUpdate(function(t, timer) timer:getData().count = t+3 end)
 
 
-        check(container.count == 0)
+        compare(container.count, 0)
         timer4:start()
-        check(container.count == 1)
+        compare(container.count, 1)
         Timers.update(0.5)
-        check(container.count == 1)
+        compare(container.count, 1)
         Timers.update(0.5)
-        check(container.count == 2)
+        compare(container.count, 2)
         Timers.update(0.5)
-        check(container.count == 3.5)
+        compare(container.count, 3.5)
         Timers.update(0.5)
-        check(container.count == 4)
+        compare(container.count, 4)
         Timers.update(0.5)
-        check(container.count == 4)
-        check(#Timers.list == 0)
+        compare(container.count, 4)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -153,75 +145,75 @@ Tests = {
         local timer6 = timer5:fork()
 
         -- single timer with one inactive fork
-        check(container.count == 0)
+        compare(container.count, 0)
         timer5:start()
-        check(container.count == 0)
+        compare(container.count, 0)
         Timers.update(1)
-        check(container.count == 1)
+        compare(container.count, 1)
         Timers.update(1)
-        check(container.count == 3)
+        compare(container.count, 3)
 
         -- two timers, forked, referring to same data
         Timers.cancelAll()
         container.count = 0
-        check(container.count == 0)
+        compare(container.count, 0)
         timer5:start()
         timer6:start()
 
         Timers.update(1)
-        check(container.count == 2)
+        compare(container.count, 2)
         Timers.update(1)
-        check(container.count == 6)
+        compare(container.count, 6)
 
         -- two timers, forked, referring to different data, only one is running
         local container2 = { count = 0 }
         timer6:withData(container2)
         container.count = 0
         Timers.cancelAll()
-        check(container.count == 0)
-        check(container2.count == 0)
+        compare(container.count, 0)
+        compare(container2.count, 0)
 
         timer5:start()
 
         Timers.update(1)
-        check(container.count == 1)
-        check(container2.count == 0)
+        compare(container.count, 1)
+        compare(container2.count, 0)
         Timers.update(1)
-        check(container.count == 3)
-        check(container2.count == 0)
+        compare(container.count, 3)
+        compare(container2.count, 0)
 
         -- two timers, forked, referring to different data, the other one is running
         container2.count = 0
         container.count = 0
         Timers.cancelAll()
-        check(container.count == 0)
-        check(container2.count == 0)
+        compare(container.count, 0)
+        compare(container2.count, 0)
 
         timer6:start()
 
         Timers.update(1)
-        check(container.count == 0)
-        check(container2.count == 1)
+        compare(container.count, 0)
+        compare(container2.count, 1)
         Timers.update(1)
-        check(container.count == 0)
-        check(container2.count == 3)
+        compare(container.count, 0)
+        compare(container2.count, 3)
 
         -- two timers, forked, referring to different data
         container2.count = 0
         container.count = 0
         Timers.cancelAll()
-        check(container.count == 0)
-        check(container2.count == 0)
+        compare(container.count, 0)
+        compare(container2.count, 0)
 
         timer5:start()
         timer6:start()
 
         Timers.update(1)
-        check(container.count == 1)
-        check(container2.count == 1)
+        compare(container.count, 1)
+        compare(container2.count, 1)
         Timers.update(1)
-        check(container.count == 3)
-        check(container2.count == 3)
+        compare(container.count, 3)
+        compare(container2.count, 3)
 
         Timers.cancelAll()
     end,
@@ -238,13 +230,13 @@ Tests = {
         -- no fork-> it's just 1 timer, and it's reset
         local timer8 = timer7:start()
 
-        check(container.count == 0)
+        compare(container.count, 0)
         Timers.update(1)
-        check(container.count == 1)
+        compare(container.count, 1)
         Timers.update(1)
-        check(container.count == 3)
+        compare(container.count, 3)
         Timers.update(1)
-        check(container.count == 3)
+        compare(container.count, 3)
 
         -- fork, run-through
         container.count = 0
@@ -252,13 +244,13 @@ Tests = {
         timer7:start()
         timer8 = timer7:fork():start()
 
-        check(container.count == 0)
+        compare(container.count, 0)
         Timers.update(1)
-        check(container.count == 2)
+        compare(container.count, 2)
         Timers.update(1)
-        check(container.count == 6)
+        compare(container.count, 6)
         Timers.update(1)
-        check(container.count == 6)
+        compare(container.count, 6)
 
         -- fork, timer7 is resed mid-run while timer8 continues
         container.count = 0
@@ -266,15 +258,15 @@ Tests = {
         timer7:start()
         timer8:start()
 
-        check(container.count == 0)
+        compare(container.count, 0)
         Timers.update(1)
-        check(container.count == 2)
+        compare(container.count, 2)
         timer7:start() -- reset
         Timers.update(1)
-        check(container.count == 5) -- 2 + 1 (timer7) + 2 (timer8)
+        compare(container.count, 5) -- 2 + 1 (timer7) + 2 (timer8)
         -- timer8 should have expired here
         Timers.update(1)
-        check(container.count == 7) -- 5 + 2 (timer7) + 0 (timer8)
+        compare(container.count, 7) -- 5 + 2 (timer7) + 0 (timer8)
 
         Timers.cancelAll()
     end,
@@ -314,9 +306,9 @@ Tests = {
         timer9:start()
         timer10:start()
         timer12:start()
-        check(container.text == "")
+        compare(container.text, "")
         Timers.draw()
-        check(container.text == "CAB")
+        compare(container.text, "CAB")
 
         -- one of them has explicit order, the others have default order
         timer11 = Timers.create(1):withData(container):withDraw(function(timer)
@@ -329,10 +321,10 @@ Tests = {
         timer9:start()
         timer10:start()
         timer12:start()
-        check(container.text == "")
+        compare(container.text, "")
         Timers.draw()
-        check(container.text:sub(3,3) == "D")
-        check(container.text:len() == 3)
+        compare(container.text:sub(3,3), "D")
+        compare(container.text:len(), 3)
         -- cannot guarantee that first two characters are "AB" or "BA"
 
 
@@ -343,9 +335,9 @@ Tests = {
         timer10:withDrawOrder(3):start()
         timer11:withDrawOrder(2):start()
         timer12:withDrawOrder(1):start()
-        check(container.text == "")
+        compare(container.text, "")
         Timers.draw()
-        check(container.text == "DBA")
+        compare(container.text, "DBA")
 
         Timers.cancelAll()
 
@@ -357,13 +349,13 @@ Tests = {
         local val = 1
         Timers.setTimeout(function() val = 3 end, 1)
 
-        check(#Timers.list == 1)
-        check(val == 1)
+        compare(#Timers.list, 1)
+        compare(val, 1)
         Timers.update(0.5)
-        check(val == 1)
+        compare(val, 1)
         Timers.update(0.5)
-        check(val == 3)
-        check(#Timers.list == 0)
+        compare(val, 3)
+        compare(#Timers.list, 0)
 
     end,
 
@@ -374,37 +366,37 @@ Tests = {
             :prepare(function() val = val + 1 end)
             :prepare(function() val = val + 2 end)
 
-        check(val == 0)
+        compare(val, 0)
         timer13:start()
-        check(val == 3)
+        compare(val, 3)
         Timers.update(1)
-        check(val == 3)
+        compare(val, 3)
         Timers.draw()
-        check(val == 3)
+        compare(val, 3)
 
         local timer14 = Timers.create(1)
             :withUpdate(function(dt) val = val + 4 end)
             :withUpdate(function(dt) val = val + 8 end)
 
-        check(val == 3)
+        compare(val, 3)
         timer14:start()
-        check(val == 3)
+        compare(val, 3)
         Timers.update(1)
-        check(val == 15)
+        compare(val, 15)
         Timers.draw()
-        check(val == 15)
+        compare(val, 15)
 
         local timer15 = Timers.create(1)
             :withDraw(function() val = val + 16 end)
             :withDraw(function() val = val + 32 end)
-        check(val == 15)
+        compare(val, 15)
         timer15:start()
-        check(val == 15)
+        compare(val, 15)
         Timers.draw()
-        check(val == 63)
+        compare(val, 63)
         Timers.update(1)
 
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -415,17 +407,17 @@ Tests = {
         timer16.extra_field = 16
         timer17.extra_field = 17
 
-        check(timer16.extra_field == 16)
-        check(timer17.extra_field == 17)
-        check(timer16:ref().extra_field == 16)
-        check(timer17:ref().extra_field == 17)
+        compare(timer16.extra_field, 16)
+        compare(timer17.extra_field, 17)
+        compare(timer16:ref().extra_field, 16)
+        compare(timer17:ref().extra_field, 17)
 
         timer16:hang(timer17)
 
-        check(timer16.extra_field == 16)
-        check(timer17.extra_field == 17)
-        check(timer16:ref().extra_field == 16)
-        check(timer17:ref().extra_field == 16)
+        compare(timer16.extra_field, 16)
+        compare(timer17.extra_field, 17)
+        compare(timer16:ref().extra_field, 16)
+        compare(timer17:ref().extra_field, 16)
 
     end,
 
@@ -439,18 +431,18 @@ Tests = {
 
         timer18:start()
 
-        check(d_repeat.iter == 1)
+        compare(d_repeat.iter, 1)
         Timers.update(0.5)
-        check(d_repeat.iter == 1)
+        compare(d_repeat.iter, 1)
         Timers.update(0.5)
-        check(d_repeat.iter == 2)
+        compare(d_repeat.iter, 2)
         Timers.update(1)
-        check(d_repeat.iter == 3)
+        compare(d_repeat.iter, 3)
         Timers.update(1)
-        check(d_repeat.iter == 4)
+        compare(d_repeat.iter, 4)
         timer18:cancel()
         Timers.update(1)
-        check(d_repeat.iter == 4)
+        compare(d_repeat.iter, 4)
 
         -- test no-restart by accident (as I implemented restart, make sure that it only happens when called)
 
@@ -459,20 +451,20 @@ Tests = {
 
         timer19:start()
 
-        check(d_repeat.iter == 4)
-        check(d_norepeat.iter == 1)
+        compare(d_repeat.iter, 4)
+        compare(d_norepeat.iter, 1)
         Timers.update(0.5)
-        check(d_repeat.iter == 4)
-        check(d_norepeat.iter == 1)
+        compare(d_repeat.iter, 4)
+        compare(d_norepeat.iter, 1)
         Timers.update(0.5)
-        check(d_repeat.iter == 4)
-        check(d_norepeat.iter == 2)
+        compare(d_repeat.iter, 4)
+        compare(d_norepeat.iter, 2)
         Timers.update(1)
-        check(d_repeat.iter == 4)
-        check(d_norepeat.iter == 2)
+        compare(d_repeat.iter, 4)
+        compare(d_norepeat.iter, 2)
         Timers.update(1)
-        check(d_repeat.iter == 4)
-        check(d_norepeat.iter == 2)
+        compare(d_repeat.iter, 4)
+        compare(d_norepeat.iter, 2)
 
         -- test restart leaf instead of origin
         -- (for example, an animation with an "intro" and then a loop afterwards)
@@ -484,18 +476,18 @@ Tests = {
 
         timer20:start()
 
-        check(d_intro.iter == 1)
+        compare(d_intro.iter, 1)
         Timers.update(1)
-        check(d_intro.iter == 2)
+        compare(d_intro.iter, 2)
         Timers.update(1)
-        check(d_intro.iter == 4)
+        compare(d_intro.iter, 4)
         Timers.update(1)
-        check(d_intro.iter == 6)
+        compare(d_intro.iter, 6)
         Timers.update(1)
-        check(d_intro.iter == 8)
+        compare(d_intro.iter, 8)
         timer20:cancel()
         Timers.update(1)
-        check(d_intro.iter == 8)
+        compare(d_intro.iter, 8)
 
         local d_full_tree = { iter = 1 }
         local timer21 = Timers.create(1):withData(d_full_tree):andThen(inc_func)
@@ -504,22 +496,22 @@ Tests = {
 
         timer21:start()
 
-        check(d_full_tree.iter == 1)
+        compare(d_full_tree.iter, 1)
         Timers.update(1)
-        check(d_full_tree.iter == 2)
+        compare(d_full_tree.iter, 2)
         Timers.update(1)
-        check(d_full_tree.iter == 4)
+        compare(d_full_tree.iter, 4)
         Timers.update(1)
-        check(d_full_tree.iter == 5)
+        compare(d_full_tree.iter, 5)
         Timers.update(1)
-        check(d_full_tree.iter == 7)
+        compare(d_full_tree.iter, 7)
         Timers.update(1)
-        check(d_full_tree.iter == 8)
+        compare(d_full_tree.iter, 8)
         timer21:cancel()
         Timers.update(1)
-        check(d_full_tree.iter == 8)
+        compare(d_full_tree.iter, 8)
         Timers.update(1)
-        check(d_full_tree.iter == 8)
+        compare(d_full_tree.iter, 8)
 
     end,
 
@@ -528,17 +520,17 @@ Tests = {
 
         local timer22 = Timers.create(1):thenWait(1)
 
-        check(timer22:isRunning() == false)
+        compare(timer22:isRunning(), false)
         timer22:start()
-        check(timer22:isRunning() == true)
+        compare(timer22:isRunning(), true)
         Timers.update(0.5)
-        check(timer22:isRunning() == true)
+        compare(timer22:isRunning(), true)
         Timers.update(0.5)
-        check(timer22:isRunning() == true)
+        compare(timer22:isRunning(), true)
         Timers.update(0.5)
-        check(timer22:isRunning() == true)
+        compare(timer22:isRunning(), true)
         Timers.update(0.5)
-        check(timer22:isRunning() == false)
+        compare(timer22:isRunning(), false)
 
     end,
 
@@ -555,28 +547,28 @@ Tests = {
         tree:hang(a1)
         tree:thenWait(1):hang(a2)
 
-        check(test_data.a == 1)
+        compare(test_data.a, 1)
 
         tree:start()
 
         -- the root doesn't have an init
-        check(test_data.a == 1)
+        compare(test_data.a, 1)
 
         -- launch first animation, will trigger its init
         Timers.update(0)
-        check(test_data.a == 2)
+        compare(test_data.a, 2)
 
         -- continue first animation
         Timers.update(1)
-        check(test_data.a == 2)
+        compare(test_data.a, 2)
 
         -- finish first animation, will trigger its end
         Timers.update(1)
-        check(test_data.a == 5)
+        compare(test_data.a, 5)
 
         -- finish second animation, will trigger its end
         Timers.update(1)
-        check(test_data.a == 7)
+        compare(test_data.a, 7)
     end,
 
     function()
@@ -592,28 +584,28 @@ Tests = {
         tree:hang(a1)
         tree:thenWait(1):hang(a2)
 
-        check(test_data.a == 1)
+        compare(test_data.a, 1)
 
         tree:start()
 
         -- the root doesn't have an init
-        check(test_data.a == 1)
+        compare(test_data.a, 1)
 
         -- launch first animation, will trigger its init
         Timers.update(0)
-        check(test_data.a == 2)
+        compare(test_data.a, 2)
 
         -- continue first animation
         Timers.update(1)
-        check(test_data.a == 2)
+        compare(test_data.a, 2)
 
         -- finish first animation, will trigger its end
         Timers.update(1)
-        check(test_data.a == 5)
+        compare(test_data.a, 5)
 
         -- finish second animation, will trigger its end
         Timers.update(1)
-        check(test_data.a == 7)
+        compare(test_data.a, 7)
 
     end,
 
@@ -629,10 +621,10 @@ Tests = {
             thirdA:start()
             end)
 
-        check(container.count == 0)
+        compare(container.count, 0)
         leaf:start()
         Timers.update(1)
-        check(container.count == 1)
+        compare(container.count, 1)
         Timers.cancelAll()
     end,
 
@@ -648,10 +640,10 @@ Tests = {
             thirdA:start()
             end)
 
-        check(container.count == 0)
+        compare(container.count, 0)
         leaf:start()
         Timers.update(1)
-        check(container.count == 1)
+        compare(container.count, 1)
         Timers.cancelAll()
     end,
 
@@ -665,21 +657,21 @@ Tests = {
                 thirdA:start()
                 end)
 
-            check(container.count == 0)
+            compare(container.count, 0)
             Timers.update(1)
-            check(container.count == 1)
+            compare(container.count, 1)
             Timers.update(1)
-            check(container.count == 2)
+            compare(container.count, 2)
             leaf:start()
             Timers.update(0) -- launch leaf
             Timers.update(0.5) -- execute leaf: restart third
-            check(container.count == 2) -- therefore still 2
+            compare(container.count, 2) -- therefore still 2
             Timers.update(1)
-            check(container.count == 3)
+            compare(container.count, 3)
             Timers.update(1);
-            check(container.count == 4);
+            compare(container.count, 4);
             Timers.update(1);
-            check(container.count == 5);
+            compare(container.count, 5);
 
             Timers.cancelAll()
     end,
@@ -696,13 +688,13 @@ Tests = {
 
 
 
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
         root:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.update(1)
-        check(#Timers.list == 2)
+        compare(#Timers.list, 2)
         root:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
     end,
 
     function()
@@ -711,11 +703,11 @@ Tests = {
         local root = Timers.create():withData({ a = 1 });
         local leaf = Timers.create();
 
-        check(not leaf:getData());
-        check(root:getData().a == 1);
+        compare(leaf:getData(), nil);
+        compare(root:getData().a, 1);
         root:hang(leaf);
-        check(root:getData().a == 1);
-        check(leaf:getData().a == 1);
+        compare(root:getData().a, 1);
+        compare(leaf:getData().a, 1);
     end,
 
     function()
@@ -723,28 +715,28 @@ Tests = {
         local root = Timers.create();
         local leaf = Timers.create():withData({ b = 2 });
 
-        check(not root:getData());
-        check(leaf:getData().b == 2);
+        compare(root:getData(), nil);
+        compare(leaf:getData().b, 2);
         root:hang(leaf);
-        check(root:getData().b == 2);
-        check(leaf:getData().b == 2);
+        compare(root:getData().b, 2);
+        compare(leaf:getData().b, 2);
     end,
     function()
         -- root and leaf's data is merged
         local root = Timers.create():withData({ a = 1 });
         local leaf = Timers.create():withData({ b = 2 });
 
-        check(root:getData().a == 1);
-        check(not root:getData().b);
-        check(leaf:getData().b == 2);
-        check(not leaf:getData().a);
+        compare(root:getData().a, 1);
+        compare(root:getData().b, nil);
+        compare(leaf:getData().b, 2);
+        compare(leaf:getData().a, nil);
 
         root:hang(leaf);
 
-        check(root:getData().a == 1);
-        check(root:getData().b == 2);
-        check(leaf:getData().a == 1);
-        check(leaf:getData().b == 2);
+        compare(root:getData().a, 1);
+        compare(root:getData().b, 2);
+        compare(leaf:getData().a, 1);
+        compare(leaf:getData().b, 2);
     end,
     function()
         -- three-way merge
@@ -752,28 +744,28 @@ Tests = {
         local leaf1 = Timers.create():withData({ b = 2 });
         local leaf2 = Timers.create():withData({ c = 3 });
 
-        check(root:getData().a == 1);
-        check(not root:getData().b);
-        check(not root:getData().c);
-        check(leaf1:getData().b == 2);
-        check(not leaf1:getData().a);
-        check(not leaf1:getData().c);
-        check(leaf2:getData().c == 3);
-        check(not leaf2:getData().a);
-        check(not leaf2:getData().b);
+        compare(root:getData().a, 1);
+        compare(root:getData().b, nil);
+        compare(root:getData().c, nil);
+        compare(leaf1:getData().b, 2);
+        compare(leaf1:getData().a, nil);
+        compare(leaf1:getData().c, nil);
+        compare(leaf2:getData().c, 3);
+        compare(leaf2:getData().a, nil);
+        compare(leaf2:getData().b, nil);
 
         root:hang(leaf1);
         root:hang(leaf2);
 
-        check(root:getData().a == 1);
-        check(root:getData().b == 2);
-        check(root:getData().c == 3);
-        check(leaf1:getData().a == 1);
-        check(leaf1:getData().b == 2);
-        check(leaf1:getData().c == 3);
-        check(leaf2:getData().a == 1);
-        check(leaf2:getData().b == 2);
-        check(leaf2:getData().c == 3);
+        compare(root:getData().a, 1);
+        compare(root:getData().b, 2);
+        compare(root:getData().c, 3);
+        compare(leaf1:getData().a, 1);
+        compare(leaf1:getData().b, 2);
+        compare(leaf1:getData().c, 3);
+        compare(leaf2:getData().a, 1);
+        compare(leaf2:getData().b, 2);
+        compare(leaf2:getData().c, 3);
 
     end,
     function()
@@ -781,13 +773,13 @@ Tests = {
         local root = Timers.create():withData({ d = 1 });
         local leaf = Timers.create():withData({ d = 2 });
 
-        check(root:getData().d == 1);
-        check(leaf:getData().d == 2);
+        compare(root:getData().d, 1);
+        compare(leaf:getData().d, 2);
 
         root:hang(leaf);
 
-        check(root:getData().d == 2);
-        check(leaf:getData().d == 2);
+        compare(root:getData().d, 2);
+        compare(leaf:getData().d, 2);
     end,
 
     function()
@@ -799,23 +791,23 @@ Tests = {
             :withUpdate(function(elapsed, timer) timer:cancel() end)
             :start()
 
-        check(#Timers.list == 1)
-        check(self_interrupt:isRunning() == true)
+        compare(#Timers.list, 1)
+        compare(self_interrupt:isRunning(), true)
         Timers.update(1)
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
         -- killing one timer from another
         local victim = Timers.create(2)
         local killer = Timers.create(2)
         :withUpdate(function() victim:cancel() end)
 
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
         victim:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         killer:start()
-        check(#Timers.list == 2)
+        compare(#Timers.list, 2)
         Timers.update(1)
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
 
         Timers.cancelAll()
     end,
@@ -829,15 +821,15 @@ Tests = {
         local tree_B = Timers.create(1):withUpdate(function() data.d = 2 end):thenWait(1):withUpdate(function() data.d = 3 end)
 
 
-        check(data.d == 0)
+        compare(data.d, 0)
         tree_A:append(tree_B):start()
-        check(data.d == 1)
+        compare(data.d, 1)
         Timers.update(0)
-        check(data.d == 1)
+        compare(data.d, 1)
         Timers.update(1)
-        check(data.d == 2)
+        compare(data.d, 2)
         Timers.update(1)
-        check(data.d == 3)
+        compare(data.d, 3)
 
         Timers.cancelAll()
 
@@ -853,23 +845,23 @@ Tests = {
         local tree_Draw = Timers.create(1):thenWait(1):withDraw(function() data.d = 3 end)
 
         -- no leaf
-        check(data.d == 1)
+        compare(data.d, 1)
         single_Draw:start()
-        check(data.d == 1)
+        compare(data.d, 1)
         Timers.draw()
         Timers.update(1)
-        check(data.d == 2)
+        compare(data.d, 2)
 
         -- tree with leaf
         tree_Draw:start()
         Timers.draw()
-        check(data.d == 2)
+        compare(data.d, 2)
         Timers.update(0.5)
         Timers.draw()
-        check(data.d == 2)
+        compare(data.d, 2)
         Timers.update(0.5)
         Timers.draw()
-        check(data.d == 3)
+        compare(data.d, 3)
     end,
 
     function()
@@ -904,15 +896,15 @@ Tests = {
         loopTimer:start()
         compare(loopTimer:getData().cnt, 0)
         Timers.update(1)
-        check(loopTimer:getData().cnt == 1)
+        compare(loopTimer:getData().cnt, 1)
         Timers.update(1)
-        check(loopTimer:getData().cnt == 2)
-        Timers.update(1)
-        check(loopTimer:getData().cnt == 3)
+        compare(loopTimer:getData().cnt, 2)
         Timers.update(1)
         compare(loopTimer:getData().cnt, 3)
         Timers.update(1)
-        check(loopTimer:getData().cnt == 3)
+        compare(loopTimer:getData().cnt, 3)
+        Timers.update(1)
+        compare(loopTimer:getData().cnt, 3)
     end,
 
     function()
@@ -927,25 +919,25 @@ Tests = {
             :hang(second_branch:ref())
 
         spawner:start()
-        check(data == 0)
+        compare(data, 0)
 
         Timers.update(1)
         Timers.draw()
-        check(data == 0)
+        compare(data, 0)
 
         Timers.update(1)
         Timers.draw()
-        check(data == 1)
+        compare(data, 1)
 
         Timers.update(1)
         Timers.draw()
-        check(data == 3)
+        compare(data, 3)
 
         Timers.update(1)
         Timers.draw()
-        check(data == 3)
+        compare(data, 3)
 
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
     end,
 
@@ -955,14 +947,14 @@ Tests = {
         local refTimer = Timers.create():withData(data):prepare(function(timer) timer:getData().a = timer:getData().a + 1 end)
         local copyTimer = Timers.create():appendData(data):prepare(function(timer) timer:getData().a = timer:getData().a + 2 end)
 
-        check(data.a == 0)
-        check(refTimer:getData().a == 0)
-        check(copyTimer:getData().a == 0)
+        compare(data.a, 0)
+        compare(refTimer:getData().a, 0)
+        compare(copyTimer:getData().a, 0)
         refTimer:start()
         copyTimer:start()
-        check(data.a == 1)
-        check(refTimer:getData().a == 1)
-        check(copyTimer:getData().a == 2)
+        compare(data.a, 1)
+        compare(refTimer:getData().a, 1)
+        compare(copyTimer:getData().a, 2)
 
     end,
 
@@ -974,19 +966,19 @@ Tests = {
         local overwriteTimer = Timers.create():withData(arr1)
         local appendTimer = Timers.create():appendData(arr1)
 
-        check(#overwriteTimer:getData() == 3)
+        compare(#overwriteTimer:getData(), 3)
         overwriteTimer:withData(arr2)
-        check(#overwriteTimer:getData() == 2)
+        compare(#overwriteTimer:getData(), 2)
         for i=1,2 do
-            check(overwriteTimer:getData()[i] == i+3)
+            compare(overwriteTimer:getData()[i], i+3)
         end
 
-        check(#appendTimer:getData() == 3)
+        compare(#appendTimer:getData(), 3)
         appendTimer:appendData(arr2)
-        check(#appendTimer:getData() == 3)
+        compare(#appendTimer:getData(), 3)
         local expected = {4,5,1}
         for i=1,2 do
-            check(appendTimer:getData()[i] == expected[i])
+            compare(appendTimer:getData()[i], expected[i])
         end
 
     end,
@@ -998,32 +990,32 @@ Tests = {
         -- simple timer, expiration
         local fine1 = Timers.create(2):finally(incControl)
 
-        check(data.control == 0)
+        compare(data.control, 0)
         fine1:start()
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(1)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(1)
-        check(data.control == 1)
-        check(#Timers.list == 0)
+        compare(data.control, 1)
+        compare(#Timers.list, 0)
 
         -- reuse simple timer, cancellation (on-timer)
         fine1:start()
-        check(data.control == 1)
+        compare(data.control, 1)
         Timers.update(1)
-        check(data.control == 1)
+        compare(data.control, 1)
         fine1:cancel()
-        check(data.control == 2)
-        check(#Timers.list == 0)
+        compare(data.control, 2)
+        compare(#Timers.list, 0)
 
         -- reuse simple timer, cancellation (global)
         fine1:start()
-        check(data.control == 2)
+        compare(data.control, 2)
         Timers.update(1)
-        check(data.control == 2)
+        compare(data.control, 2)
         Timers.cancelAll()
-        check(data.control == 3)
-        check(#Timers.list == 0)
+        compare(data.control, 3)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -1031,32 +1023,32 @@ Tests = {
         local data = { control = 0 }
         local function incControl() data.control = data.control + 1 end
         local fine2 = Timers.create(2):withData({ d = 0 }):finally(function(cancelled, timer) timer:getData().d = timer:getData().d + 1 end)
-        check(fine2:getData().d == 0)
+        compare(fine2:getData().d, 0)
         fine2:start()
-        check(fine2:getData().d == 0)
+        compare(fine2:getData().d, 0)
         Timers.update(1)
-        check(fine2:getData().d == 0)
+        compare(fine2:getData().d, 0)
         Timers.update(1)
-        check(fine2:getData().d == 1)
-        check(#Timers.list == 0)
+        compare(fine2:getData().d, 1)
+        compare(#Timers.list, 0)
 
         -- reuse simple timer, cancellation (on-timer)
         fine2:start()
-        check(fine2:getData().d == 1)
+        compare(fine2:getData().d, 1)
         Timers.update(1)
-        check(fine2:getData().d == 1)
+        compare(fine2:getData().d, 1)
         fine2:cancel()
-        check(fine2:getData().d == 2)
-        check(#Timers.list == 0)
+        compare(fine2:getData().d, 2)
+        compare(#Timers.list, 0)
 
         -- reuse simple timer, cancellation (global)
         fine2:start()
-        check(fine2:getData().d == 2)
+        compare(fine2:getData().d, 2)
         Timers.update(1)
-        check(fine2:getData().d == 2)
+        compare(fine2:getData().d, 2)
         Timers.cancelAll()
-        check(fine2:getData().d == 3)
-        check(#Timers.list == 0)
+        compare(fine2:getData().d, 3)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -1066,41 +1058,41 @@ Tests = {
         -- timer tree, with finally attached at creation timer
         local fine3 = Timers.create(2):thenWait(2):finally(incControl)
 
-        check(data.control == 0)
+        compare(data.control, 0)
         fine3:start()
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 1)
-        check(#Timers.list == 0)
+        compare(data.control, 1)
+        compare(#Timers.list, 0)
 
         -- cancellation (on-timer), root cancelled
         fine3:start()
-        check(data.control == 1)
+        compare(data.control, 1)
         Timers.update(1)
-        check(data.control == 1)
+        compare(data.control, 1)
         fine3:cancel()
-        check(data.control == 2)
-        check(#Timers.list == 0)
+        compare(data.control, 2)
+        compare(#Timers.list, 0)
 
          -- cancellation (on-timer), leaf cancelled
         fine3:start()
-        check(data.control == 2)
+        compare(data.control, 2)
         Timers.update(3)
-        check(data.control == 2)
+        compare(data.control, 2)
         fine3:cancel()
-        check(data.control == 3)
-        check(#Timers.list == 0)
+        compare(data.control, 3)
+        compare(#Timers.list, 0)
 
         -- cancellation (global)
         fine3:start()
-        check(data.control == 3)
+        compare(data.control, 3)
         Timers.update(1)
-        check(data.control == 3)
+        compare(data.control, 3)
         Timers.cancelAll()
-        check(data.control == 4)
-        check(#Timers.list == 0)
+        compare(data.control, 4)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -1111,41 +1103,41 @@ Tests = {
         local fine4 = Timers.create(2)
         fine4:hang(leaf4)
 
-        check(data.control == 0)
+        compare(data.control, 0)
         fine4:start()
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 1)
-        check(#Timers.list == 0)
+        compare(data.control, 1)
+        compare(#Timers.list, 0)
 
         -- cancellation (on-timer), root cancelled
         fine4:start()
-        check(data.control == 1)
+        compare(data.control, 1)
         Timers.update(1)
-        check(data.control == 1)
+        compare(data.control, 1)
         fine4:cancel()
-        check(data.control == 2)
-        check(#Timers.list == 0)
+        compare(data.control, 2)
+        compare(#Timers.list, 0)
 
          -- cancellation (on-timer), leaf cancelled
         fine4:start()
-        check(data.control == 2)
+        compare(data.control, 2)
         Timers.update(3)
-        check(data.control == 2)
+        compare(data.control, 2)
         fine4:cancel()
-        check(data.control == 3)
-        check(#Timers.list == 0)
+        compare(data.control, 3)
+        compare(#Timers.list, 0)
 
         -- cancellation (global)
         fine4:start()
-        check(data.control == 3)
+        compare(data.control, 3)
         Timers.update(1)
-        check(data.control == 3)
+        compare(data.control, 3)
         Timers.cancelAll()
-        check(data.control == 4)
-        check(#Timers.list == 0)
+        compare(data.control, 4)
+        compare(#Timers.list, 0)
     end,
 
    function()
@@ -1156,24 +1148,24 @@ Tests = {
         -- first define finally, then loop
         local fine5 = Timers.create(2):finally(incControl):thenRestart()
 
-        check(data.control == 0)
+        compare(data.control, 0)
         fine5:start()
 
         -- several iterations, finally never called
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(1)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         -- explicit cancel
         fine5:cancel()
-        check(data.control == 1)
+        compare(data.control, 1)
 
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
         -- first define loop, then finally
         local fine6 = Timers.create(2):thenRestart():finally(incControl)
@@ -1182,35 +1174,35 @@ Tests = {
         fine6:start()
 
         -- several iterations, finally never called
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(1)
-        check(data.control == 0)
+        compare(data.control, 0)
         Timers.update(2)
-        check(data.control == 0)
+        compare(data.control, 0)
         -- explicit cancel
         fine6:cancel()
-        check(data.control == 1)
+        compare(data.control, 1)
 
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
     end,
 
     function()
         -- finite looper with finally
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
         local loopTimer_5 = Timers.create(1):withData({ cnt = 0 }):withUpdate(function(elapsed, timer) timer:getData().cnt = timer:getData().cnt + 1 end):loopNTimes(2)
             :finally(function(cancelled, timer) timer:getData().cnt = timer:getData().cnt + 10 end)
 
-        check(loopTimer_5:getData().cnt == 0)
+        compare(loopTimer_5:getData().cnt, 0)
         loopTimer_5:start()
-        check(loopTimer_5:getData().cnt == 0)
+        compare(loopTimer_5:getData().cnt, 0)
         Timers.update(1)
-        check(loopTimer_5:getData().cnt == 1)
+        compare(loopTimer_5:getData().cnt, 1)
         Timers.update(1)
-        check(loopTimer_5:getData().cnt == 12)
+        compare(loopTimer_5:getData().cnt, 12)
     end,
 
     function()
@@ -1220,9 +1212,9 @@ Tests = {
         local two_call = Timers.create():andThen(inc):finally(inc)
 
         two_call:start()
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 2)
+        compare(count, 2)
     end,
 
     function()
@@ -1232,13 +1224,13 @@ Tests = {
         local final_call = Timers.create(1):finally(inc):thenWait(1):thenWait(1)
 
         final_call:start()
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 1)
+        compare(count, 1)
     end,
 
     function()
@@ -1248,13 +1240,13 @@ Tests = {
         root:thenWait(2):withUpdate(function(elapsed, timer) if elapsed >= 1 then timer:cancel() end end)
 
         root:start()
-        check(#Timers.list == 1)
+        compare(#Timers.list, 1)
         Timers.update(1)
-        check(#Timers.list == 2)
+        compare(#Timers.list, 2)
         Timers.update(0.5)
-        check(#Timers.list == 2)
+        compare(#Timers.list, 2)
         Timers.update(0.5)
-        check(#Timers.list == 0)
+        compare(#Timers.list, 0)
 
     end,
 
@@ -1269,13 +1261,13 @@ Tests = {
         root_delayed:hang(leaf)
         root_delayed:hang(leaf)
 
-        check(count == 0)
+        compare(count, 0)
         root_delayed:start()
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 2)
+        compare(count, 2)
         Timers.cancelAll()
 
         count = 0
@@ -1283,13 +1275,13 @@ Tests = {
         root_immediate:hang(leaf)
         root_immediate:hang(leaf)
 
-        check(count == 0)
+        compare(count, 0)
         root_immediate:start()
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 2)
+        compare(count, 2)
         Timers.update(1)
-        check(count == 4)
+        compare(count, 4)
 
         Timers.cancelAll()
     end,
@@ -1337,11 +1329,11 @@ Tests = {
         local test_val = 0
         local final_immediate = Timers.immediate():finally(function() test_val = 1 end)
 
-        check(test_val == 0)
+        compare(test_val, 0)
         final_immediate:start()
-        check(test_val == 0)
+        compare(test_val, 0)
         Timers.update(1)
-        check(test_val == 1)
+        compare(test_val, 1)
     end,
 
     function()
@@ -1350,13 +1342,13 @@ Tests = {
         local inc = function() count = count + 1 end
         local prepare_tree = Timers.create(2):prepare(inc):thenWait(1):prepare(inc)
 
-        check(count == 0)
+        compare(count, 0)
         prepare_tree:start()
-        check(count == 1)
+        compare(count, 1)
         Timers.update(1)
-        check(count == 1)
+        compare(count, 1)
         Timers.update(1)
-        check(count == 2)
+        compare(count, 2)
     end,
 
     function()
@@ -1366,21 +1358,21 @@ Tests = {
 
         local two_finals_one_timer = Timers.create():finally(inc):finally(inc)
 
-        check(count == 0)
+        compare(count, 0)
         two_finals_one_timer:start()
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 2)
+        compare(count, 2)
 
         count = 0
         local two_finals_tree = Timers.create():finally(inc):thenWait(1):finally(inc)
-        check(count == 0)
+        compare(count, 0)
         two_finals_tree:start()
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 0)
+        compare(count, 0)
         Timers.update(1)
-        check(count == 2)
+        compare(count, 2)
     end,
 
     function()
@@ -1394,23 +1386,23 @@ Tests = {
 
         -- finally should be called after the whole tree is finished
         tree_asym:start()
-        check(asym_data == 0)
-        check(#Timers.list == 1)
+        compare(asym_data, 0)
+        compare(#Timers.list, 1)
 
         -- run root, spawn 2 branches
         Timers.update(1)
-        check(asym_data == 0)
-        check(#Timers.list == 2)
+        compare(asym_data, 0)
+        compare(#Timers.list, 2)
 
         -- finish one branch, finally not triggered yet
         Timers.update(1)
-        check(asym_data == 0)
-        check(#Timers.list == 1)
+        compare(asym_data, 0)
+        compare(#Timers.list, 1)
 
         -- finish second branch, trigger finally
         Timers.update(1)
-        check(asym_data == 1)
-        check(#Timers.list == 0)
+        compare(asym_data, 1)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -1422,18 +1414,18 @@ Tests = {
 
         -- finally should be called after the whole tree is finished
         tree_asym:start()
-        check(asym_data == 0)
-        check(#Timers.list == 1)
+        compare(asym_data, 0)
+        compare(#Timers.list, 1)
 
         -- run root, spawn 2 branches
         Timers.update(1)
-        check(asym_data == 0)
-        check(#Timers.list == 2)
+        compare(asym_data, 0)
+        compare(#Timers.list, 2)
 
         -- finish both branches, trigger finally but only once
         Timers.update(1)
-        check(asym_data == 1)
-        check(#Timers.list == 0)
+        compare(asym_data, 1)
+        compare(#Timers.list, 0)
 
     end,
 
@@ -1445,23 +1437,23 @@ Tests = {
                 fControl = cancelled and 1 or 2
             end)
 
-        check(fControl == 0)
+        compare(fControl, 0)
         finalled_timer:start()
-        check(fControl == 0)
+        compare(fControl, 0)
         Timers.update(1)
-        check(fControl == 2)
+        compare(fControl, 2)
 
         fControl = 0
         finalled_timer:start()
-        check(fControl == 0)
+        compare(fControl, 0)
         finalled_timer:cancel()
-        check(fControl == 1)
+        compare(fControl, 1)
 
         fControl = 0
         finalled_timer:start()
-        check(fControl == 0)
+        compare(fControl, 0)
         Timers.cancelAll()
-        check(fControl == 1)
+        compare(fControl, 1)
 
     end,
 
@@ -1477,28 +1469,28 @@ Tests = {
 
         -- first, two branches of tree_followed are executing
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 2)
+        compare(done, 0)
+        compare(#Timers.list, 2)
 
         -- after 2 seconds, the first branch dies, but the second branch still runs
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 1)
+        compare(done, 0)
+        compare(#Timers.list, 1)
 
         -- at 3 seconds, the second branch is still there
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 1)
+        compare(done, 0)
+        compare(#Timers.list, 1)
 
         -- at 4 seconds, the second branch dies, which triggers the second tree (1 second root)
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 1)
+        compare(done, 0)
+        compare(#Timers.list, 1)
 
         -- 5 seconds: the last branch of the last tree finishes
         Timers.update(1)
-        check(done == 1)
-        check(#Timers.list == 0)
+        compare(done, 1)
+        compare(#Timers.list, 0)
     end,
 
     function()
@@ -1510,18 +1502,18 @@ Tests = {
         tree_cancelled:start()
 
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 1)
+        compare(done, 0)
+        compare(#Timers.list, 1)
 
         tree_cancelled:cancel()
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 0)
+        compare(done, 0)
+        compare(#Timers.list, 0)
 
         -- just to make sure that nothing is running
         Timers.update(1)
-        check(done == 0)
-        check(#Timers.list == 0)
+        compare(done, 0)
+        compare(#Timers.list, 0)
 
     end,
 
@@ -1534,23 +1526,23 @@ Tests = {
         local timerA = TimersA.create(100):withUpdate(function() count = count + 1 end)
         local timerB = TimersB.create(100):withUpdate(function() count = count + 10 end)
 
-        check(count == 0)
+        compare(count, 0)
         timerA:start()
         timerB:start()
-        check(count == 0)
-        check(#TimersA.list == 1)
-        check(#TimersB.list == 1)
+        compare(count, 0)
+        compare(#TimersA.list, 1)
+        compare(#TimersB.list, 1)
         TimersA.update(1)
-        check(count == 1)
+        compare(count, 1)
         TimersB.update(1)
-        check(count == 11)
+        compare(count, 11)
         TimersA.update(1)
         TimersB.update(1)
-        check(count == 22)
+        compare(count, 22)
         TimersA.cancelAll()
         TimersA.update(1)
         TimersB.update(1)
-        check(count == 32)
+        compare(count, 32)
 
         TimersA.cancelAll()
         TimersB.cancelAll()
@@ -1564,26 +1556,26 @@ Tests = {
 
         local data = 0
         Timers.setTimeout(function() data = 1 end, 1)
-        check(data == 0)
+        compare(data, 0)
         Timers.update(1)
-        check(data == 1)
+        compare(data, 1)
 
         Timers:setTimeout(function() data = 2 end, 1)
-        check(data == 1)
+        compare(data, 1)
         Timers:update(1)
-        check(data == 2)
+        compare(data, 2)
 
         local timer_noself = Timers.create(1):andThen(function() data = 3 end)
         timer_noself:start()
-        check(data == 2)
+        compare(data, 2)
         Timers.update(1)
-        check(data == 3)
+        compare(data, 3)
 
         local timer_withself = Timers:create(1):andThen(function() data = 4 end)
         timer_withself:start()
-        check(data == 3)
+        compare(data, 3)
         Timers.update(1)
-        check(data == 4)
+        compare(data, 4)
 
     end,
 
@@ -1600,24 +1592,24 @@ Tests = {
         watched_tree:start()
         observer:start()
 
-        check(count == 0)
+        compare(count, 0)
 
         Timers.update(1)
-        check(count == 2)
-        check(observer.elapsed == 1)
+        compare(count, 2)
+        compare(observer.elapsed, 1)
 
         Timers.update(1)
-        check(count == 4)
-        check(observer.elapsed == 2)
+        compare(count, 4)
+        compare(observer.elapsed, 2)
 
         Timers.update(1)
-        check(count == 6)
-        check(observer.elapsed == 3)
+        compare(count, 6)
+        compare(observer.elapsed, 3)
 
         Timers.update(1)
-        check(count == 6)
-        check(#Timers.list == 0)
-        check(observer.elapsed == 3)
+        compare(count, 6)
+        compare(#Timers.list, 0)
+        compare(observer.elapsed, 3)
     end,
 
     function()
@@ -1625,13 +1617,13 @@ Tests = {
         local self_observe = Timers.create()
 
         self_observe:observe(self_observe)
-        check(self_observe.observed == nil)
+        compare(self_observe.observed, nil)
 
         self_observe:observe(Timers.create())
-        check(self_observe.observed ~= nil)
+        compare(not self_observe.observed, false)
 
         self_observe:observe()
-        check(self_observe.observed == nil)
+        compare(self_observe.observed, nil)
     end,
 
     function()
@@ -1650,15 +1642,15 @@ Tests = {
         c:finally(function() control = 1 end)
 
         root:start()
-        check(control == 0)
+        compare(control, 0)
         Timers.update(1)
-        check(control == 0)
+        compare(control, 0)
         Timers.update(1)
-        check(control == 0)
+        compare(control, 0)
         Timers.update(1)
-        check(control == 0)
+        compare(control, 0)
         Timers.update(1)
-        check(control == 1)
+        compare(control, 1)
 
     end,
 

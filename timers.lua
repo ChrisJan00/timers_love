@@ -307,7 +307,7 @@ local function _newInstance()
         end,
 
         isPaused = function(self)
-            return _bubble_origin(self).paused
+            return _bubble_origin(self).paused or false
         end,
 
         isRunning = function(self)
