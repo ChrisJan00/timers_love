@@ -1662,6 +1662,97 @@ Tests = {
 
     end,
 
+    function()
+        -- loop with following branches and attached branches: follow-ups should be called only when loop is done (and loop does not reset tree!)
+
+        local control = 0
+        local root = Timers.create()
+        local loop = Timers.create(1):loopNTimes(3):thenWait(1):andThen(function() control = control + 1 end)
+        local parallel = Timers.create(10):withUpdate(function() control = control + 10 end)
+
+        root:append(loop)
+        root:append(parallel)
+
+        compare(control, 0)
+        root:start()
+        Timers.update(1)
+        compare(control, 0)
+        Timers.update(1)
+        compare(control, 10)
+        Timers.update(1)
+        compare(control, 20)
+        Timers.update(1)
+        compare(control, 30)
+        Timers.update(1)
+        compare(control, 41)
+        Timers.update(1)
+        compare(control, 51)
+        Timers.update(1)
+        compare(control, 61)
+        Timers.update(1)
+        compare(control, 71)
+        Timers.update(1)
+        compare(control, 81)
+        Timers.update(1)
+        compare(control, 91)
+
+    end,
+
+    function()
+		-- long loop
+        local control = 0
+        local longLoop = Timers.create(1):andThen(function() control = control + 1 end):loopNTimes(100):andThen(function() control = -1 end)
+
+        longLoop:start()
+        for i=1,100 do
+            Timers.update(1)
+            compare(control, i)
+        end
+
+        Timers.update(1)
+        compare(control, -1)
+
+        Timers.cancelAll()
+
+        -- short loop
+        control = 0
+        Timers.create(1):andThen(function() control = control + 1 end):loopNTimes(1):start()
+
+        compare(control,0)
+        Timers.update(1)
+        compare(control,1)
+        Timers.update(1)
+        compare(control,1)
+        compare(#Timers.list, 0)
+
+    end,
+
+    function()
+        -- loopNtimes: it repeats its own tree at declaration time, further attachments are ignored
+
+        local count = 0
+        local spawner = Timers.create()
+        local spawned = Timers.create():andThen(function() count = count + 1 end)
+        spawner:hang(spawned)
+        local loop = Timers.create():thenWait(1):loopNTimes(10)
+        spawner:hang(loop)
+
+        spawner:start()
+        Timers.update(1)
+        compare(count, 0)
+        Timers.update(1)
+        compare(count, 1)
+        Timers.update(1)
+        compare(count, 1)
+        Timers.update(1)
+        compare(count, 1)
+        Timers.update(1)
+        compare(count, 1)
+        Timers.update(1)
+        compare(count, 1)
+
+    end,
+
 }
 
 

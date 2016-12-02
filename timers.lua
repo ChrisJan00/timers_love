@@ -54,6 +54,12 @@ local function _newInstance()
         return copy
     end
 
+    local function _clone_timer(timer)
+        local copy = _clone_callbacks(timer)
+        copy.origin = timer.origin
+        return copy
+    end
+
     local function _append_internal_data(timer, _data)
         _bubble_origin(timer)
         if not timer.origin._data then
@@ -184,17 +190,31 @@ local function _newInstance()
         end,
 
         loopNTimes = function(self, times)
-            if times>1 then
-                local iteration_proto = _clone_callbacks(_bubble_origin(self))
-                local tail = self
-                -- the first iteration is already there
-                for i=1,times-1 do
-                    tail = tail:hang(_clone_callbacks(iteration_proto))
-                end
-                return tail
-            else
+            if times <= 1 then
                 return self
             end
+
+            _bubble_origin(self)
+
+            local tail = Timers.immediate()
+            tail.callback = self.callback
+            local ghost = _clone_timer(self)
+            ghost:hang(tail)
+
+            self:hang(self.origin)
+            local _loopCount = times
+            local recurse = self.callback
+            self.callback = function(timer)
+                _loopCount = _loopCount - 1
+                if _loopCount > 0 then
+                    recurse(timer)
+                else
+					-- passed timer will be self (despite calling the 'ghost' one)
+                    ghost.callback(timer)
+                end
+            end
+
+            return tail
         end,
 
         hang = function(self, newTimer)

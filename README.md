@@ -154,7 +154,7 @@ The existence of fork() is to overcome the problem of wanting to have two or mor
     timer = timer:thenRestartLast()
         -- once this timer expires, restart itself: the last leaf of the tree (infinite loop)
     timer = timer:loopNTimes(N)
-        -- make this timer restart its tree N times (finite loop)
+        -- repeat tree N times.  It uses the tree as defined when this is called, further 'hang' calls are not going to be taken into account.
 
 
 Timer controller
