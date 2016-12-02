@@ -971,7 +971,6 @@ Tests = {
         check (loopTimer_4:getData().cnt == 3)
         Timers.update(1)
         check (loopTimer_4:getData().cnt == 3)
-
     end,
 
     function()
@@ -1255,6 +1254,21 @@ Tests = {
         check(data.control == 1)
 
         check(#Timers.list == 0)
+    end,
+
+    function()
+        -- finite looper with finally
+        check(#Timers.list == 0)
+        local loopTimer_5 = Timers.create(1):withData({ cnt = 0 }):withUpdate(function(elapsed, timer) timer:getData().cnt = timer:getData().cnt + 1 end):loopNTimes(2)
+            :finally(function(cancelled, timer) timer:getData().cnt = timer:getData().cnt + 10 end)
+
+        check (loopTimer_5:getData().cnt == 0)
+        loopTimer_5:start()
+        check (loopTimer_5:getData().cnt == 0)
+        Timers.update(1)
+        check (loopTimer_5:getData().cnt == 1)
+        Timers.update(1)
+        check (loopTimer_5:getData().cnt == 12)
     end,
 
     function()
@@ -1676,6 +1690,34 @@ Tests = {
 
         self_observe:observe()
         check(self_observe.observed == nil)
+    end,
+
+    function()
+        -- test that origin is passed through correctly across branches regardless of the order in which they were defined
+        -- and thus finally is correctly executed
+
+        local control = 0
+        local root = Timers.create()
+        local a = Timers.create()
+        local b = Timers.create(2)
+        local c = Timers.create()
+
+        a:hang(c)
+        root:hang(a)
+        a:hang(b)
+        c:finally(function() control = 1 end)
+
+        root:start()
+        check(control == 0)
+        Timers.update(1)
+        check(control == 0)
+        Timers.update(1)
+        check(control == 0)
+        Timers.update(1)
+        check(control == 0)
+        Timers.update(1)
+        check(control == 1)
+
     end
 
 }
