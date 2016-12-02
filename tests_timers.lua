@@ -1745,6 +1745,45 @@ Tests = {
 
     end,
 
+    function()
+        -- finally should only be called for running trees, no matter how they are cancelled
+
+        local control = 0
+        local tree_with_final = Timers.create():finally(function() control = control + 1 end)
+
+        -- normal finally
+        compare(control, 0)
+        tree_with_final:start()
+        compare(control, 0)
+        Timers.update(1)
+        compare(control, 1)
+
+        compare(#Timers.list, 0)
+
+        -- running tree is cancelled: run the finally
+        control = 0
+        tree_with_final:start()
+        compare(control, 0)
+        tree_with_final:cancel()
+        compare(control, 1)
+
+        -- running tree cancelled from Timers: run the finally
+        control = 0
+        tree_with_final:start()
+        compare(control, 0)
+        Timers.cancelAll()
+        compare(control, 1)
+
+        -- stopped tree cancelled: no finally
+        control = 0
+        compare(control, 0)
+        tree_with_final:cancel()
+        compare(control, 0)
+        Timers.cancelAll()
+        compare(control, 0)
+
+    end
+
 }
 
 

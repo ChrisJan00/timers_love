@@ -283,12 +283,13 @@ local function _newInstance()
 
         cancel = function(self)
             _bubble_origin(self)
+            local was_running = self.origin._running > 0
             self.origin._running = 0
             if _timers_busy then
                 table.insert(_delayed_commands, function() self:cancel() end)
                 return self
             end
-            if self.origin.final then
+            if was_running and self.origin.final then
                 self.origin.final(true, self)
             end
             _purge()
