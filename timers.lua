@@ -162,16 +162,6 @@ local function _newInstance()
             return self:hang(newTimer)
         end,
 
-        followWith = function(self, T)
-            local newRoot = Timers.create(T)
-            self:finally(function(cancelled)
-                if not cancelled then
-                    newRoot:start()
-                end
-            end)
-            return newRoot
-        end,
-
         observe = function(self, tree)
             if tree ~= _bubble_origin(self) then
                 self.observed = tree and _bubble_origin(tree) or nil
