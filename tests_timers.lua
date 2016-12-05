@@ -1731,9 +1731,7 @@ Tests = {
         local restartIfTimer = Timers.create(1):withUpdate(function()
             data.control = data.control + 1
             end)
-            :thenRestartIf(function()
-                print("eval "..tostring(data.cond))
-             return data.cond end)
+            :loopIf(function() return data.cond end)
 
         restartIfTimer:start()
         compare(data.control,0)
@@ -1745,6 +1743,8 @@ Tests = {
         compare(data.control,3)
         data.cond = false
         Timers.update(1)
+        -- 4 because it iterates one more time before checking that the other one died
+        -- (the order is update -> restart)
         compare(data.control,4)
         Timers.update(1)
         compare(data.control,4)
@@ -1762,11 +1762,10 @@ Tests = {
         local control = 0
         local loopTimer = Timers.create(1):withUpdate(function()
             control = control + 1
-            end):thenRestartObserve(controlTimer)
+            end):loopObserve(controlTimer)
 
         controlTimer:start()
         loopTimer:start()
-
         compare(control, 0)
         Timers.update(1)
         compare(control, 1)

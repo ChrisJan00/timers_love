@@ -74,6 +74,14 @@ local function _newInstance()
     end
 
     local Timer_proto = {
+        -- change timeout value
+        withTimeout = function(self, t)
+            self.timeout = t
+            return self
+        end,
+
+
+        -- attaching callbacks to timers
         prepare = function(self, pre)
             if self.init then
                 local func = self.init
@@ -87,7 +95,6 @@ local function _newInstance()
             return self
         end,
 
-        -- function cb()
         andThen = function(self, cb)
             if self.callback then
                 local func = self.callback
@@ -101,7 +108,6 @@ local function _newInstance()
             return self
         end,
 
-        -- function upd(elapsed)
         withUpdate = function(self, upd)
             if self.update then
                 local func = self.update
@@ -115,7 +121,6 @@ local function _newInstance()
             return self
         end,
 
-        -- function upd()
         withDraw = function(self, draw, draworder)
             if self.draw then
                 local func = self.draw
@@ -157,70 +162,7 @@ local function _newInstance()
             return self
         end,
 
-        thenWait = function(self, T)
-            local newTimer = Timers.create(T)
-            return self:hang(newTimer)
-        end,
-
-        observe = function(self, tree)
-            if tree ~= _bubble_origin(self) then
-                self.observed = tree and _bubble_origin(tree) or nil
-            end
-            return self
-        end,
-
-        thenRestart = function(self)
-            self:hang(_bubble_origin(self))
-            return self
-        end,
-
-        thenRestartLast = function(self)
-            self:hang(self)
-            return self
-        end,
-
-        thenRestartIf = function(self, cond)
-            local stored_orig = _bubble_origin(self)
-            self:andThen(function()
-                if cond() then
-                    stored_orig:start()
-                end
-            end)
-            return self
-        end,
-
-        loopNTimes = function(self, times)
-            if times <= 1 then
-                return self
-            end
-
-            _bubble_origin(self)
-
-            local tail = Timers.immediate()
-            tail.callback = self.callback
-            local ghost = _clone_timer(self)
-            ghost:hang(tail)
-
-            self:hang(self.origin)
-            local _loopCount = times
-            local recurse = self.callback
-            self.callback = function(timer)
-                _loopCount = _loopCount - 1
-                if _loopCount > 0 then
-                    recurse(timer)
-                else
-					-- passed timer will be self (despite calling the 'ghost' one)
-                    ghost.callback(timer)
-                end
-            end
-
-            return tail
-        end,
-
-        thenRestartObserve = function(self, observed)
-            return self:thenRestartIf(function() return observed:isRunning() end)
-        end,
-
+        -- append timers
         hang = function(self, newTimer)
             _bubble_origin(self)
             _bubble_origin(newTimer)
@@ -261,6 +203,73 @@ local function _newInstance()
             return newTimer
         end,
 
+        thenWait = function(self, T)
+            local newTimer = Timers.create(T)
+            return self:hang(newTimer)
+        end,
+
+        -- looping functions
+        thenRestart = function(self)
+            self:hang(_bubble_origin(self))
+            return self
+        end,
+
+        thenRestartLast = function(self)
+            self:hang(self)
+            return self
+        end,
+
+        loopIf = function(self, cond)
+            _bubble_origin(self)
+
+            local tail = Timers.immediate()
+            tail.callback = self.callback
+            local exit = _clone_timer(self)
+            exit:hang(tail)
+
+            self:hang(self.origin)
+            local recurse = self.callback
+            self.callback = function(timer)
+                if cond() then
+                    recurse(timer)
+                else
+                    exit.callback(timer)
+                end
+            end
+
+            return tail
+        end,
+
+        loopNTimes = function(self, times)
+            if times <= 1 then
+                return self
+            end
+
+            local _loopCount = times
+            local _loopCond = function()
+                _loopCount = _loopCount - 1
+                return _loopCount > 0
+            end
+            return self:loopIf(_loopCond)
+        end,
+
+        -- observe (loop and without)
+        loopObserve = function(self, tree)
+            if tree ~= _bubble_origin(self) then
+                local observed = _bubble_origin(tree)
+                return self:loopIf(function() return observed:isRunning() end)
+            end
+            return self
+        end,
+
+        observe = function(self, tree)
+            if tree ~= _bubble_origin(self) then
+                self.observed = tree and _bubble_origin(tree) or nil
+            end
+            return self
+        end,
+
+        -- run control
         start = function(self)
             if _timers_busy then
                 -- mark as started (will be overwritten at actual start)
@@ -319,11 +328,7 @@ local function _newInstance()
             return _bubble_origin(self)._running > 0
         end,
 
-        withTimeout = function(self, t)
-            self.timeout = t
-            return self
-        end,
-
+        -- data
         withData = function(self, data)
             _bubble_origin(self).data = data
             return self
@@ -343,6 +348,7 @@ local function _newInstance()
             return _bubble_origin(self).data
         end,
 
+        -- fork, reference
         fork = function(self)
             _bubble_origin(self)
             return _clone_self_new_orig(self.origin)
