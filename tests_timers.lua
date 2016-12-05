@@ -1782,8 +1782,71 @@ Tests = {
         Timers.cancelAll()
         compare(control, 0)
 
-    end
+    end,
 
+    function()
+        -- restartIf
+
+        local data = { control = 0, cond = true }
+        local restartIfTimer = Timers.create(1):withUpdate(function()
+            data.control = data.control + 1
+            end)
+            :thenRestartIf(function()
+                print("eval "..tostring(data.cond))
+             return data.cond end)
+
+        restartIfTimer:start()
+        compare(data.control,0)
+        Timers.update(1)
+        compare(data.control,1)
+        Timers.update(1)
+        compare(data.control,2)
+        Timers.update(1)
+        compare(data.control,3)
+        data.cond = false
+        Timers.update(1)
+        compare(data.control,4)
+        Timers.update(1)
+        compare(data.control,4)
+        Timers.update(1)
+        compare(data.control,4)
+        Timers.update(1)
+        compare(data.control,4)
+
+        compare(#Timers.list, 0)
+    end,
+
+    function()
+        -- loopObserve
+        local controlTimer = Timers.create(5)
+        local control = 0
+        local loopTimer = Timers.create(1):withUpdate(function()
+            control = control + 1
+            end):thenRestartObserve(controlTimer)
+
+        controlTimer:start()
+        loopTimer:start()
+
+        compare(control, 0)
+        Timers.update(1)
+        compare(control, 1)
+        Timers.update(1)
+        compare(control, 2)
+        Timers.update(1)
+        compare(control, 3)
+        Timers.update(1)
+        compare(control, 4)
+        Timers.update(1)
+        compare(control, 5)
+        Timers.update(1)
+        compare(control, 6)
+        Timers.update(1)
+        compare(control, 6)
+        Timers.update(1)
+        compare(control, 6)
+
+        compare(#Timers.list, 0)
+    end
 }
 
 

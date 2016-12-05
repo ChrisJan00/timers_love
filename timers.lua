@@ -189,6 +189,16 @@ local function _newInstance()
             return self
         end,
 
+        thenRestartIf = function(self, cond)
+            local stored_orig = _bubble_origin(self)
+            self:andThen(function()
+                if cond() then
+                    stored_orig:start()
+                end
+            end)
+            return self
+        end,
+
         loopNTimes = function(self, times)
             if times <= 1 then
                 return self
@@ -215,6 +225,10 @@ local function _newInstance()
             end
 
             return tail
+        end,
+
+        thenRestartObserve = function(self, observed)
+            return self:thenRestartIf(function() return observed:isRunning() end)
         end,
 
         hang = function(self, newTimer)
